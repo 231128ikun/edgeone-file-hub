@@ -1,0 +1,13 @@
+# build artifacts
+/cloudsync
+/cloudsync.exe
+/dist/
+.gocache/
+*.test
+*.out
+coverage.*
+
+# local config may contain secrets
+cloudsync.yaml
+cloudsync.json
+.env

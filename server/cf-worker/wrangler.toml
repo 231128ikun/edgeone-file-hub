@@ -1,0 +1,15 @@
+﻿name = "cloudsync-cf-kv"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+
+# 1) 在 Cloudflare 控制台创建一个 KV namespace
+# 2) 把它的 id 填到下面（binding 名保持 KV）
+# 3) wrangler secret put WRITE_TOKEN
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# 公开访问的基础 URL（可选）。不填时返回的 URL 使用请求的 origin。
+# 建议：把订阅域名 CNAME/代理到这里，再填该域名，这样返回的订阅链接稳定。
+[vars]
+# PUBLIC_BASE_URL = "https://sub.example.com"
