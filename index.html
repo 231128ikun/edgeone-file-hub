@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>edgeone-sync · EdgeOne Makers 云端同步服务</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; max-width: 720px; margin: 48px auto; padding: 0 20px; color: #222; line-height: 1.7; }
+    pre { background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 12px 16px; overflow-x: auto; }
+    code { background: #f6f8fa; padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+    h1 { font-size: 1.6em; } h2 { font-size: 1.15em; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <h1>edgeone-sync</h1>
+  <p>这是一个部署在 <strong>EdgeOne Makers</strong> 上的云端同步服务：本地工具（如 iptest-web）用 token 把订阅 / 结果文件上传到云端 Blob 存储，其他人通过公开 URL 直接读取。</p>
+  <p>主页本身不提供功能，接口说明见项目 README。接口速览：</p>
+  <pre>GET    /&lt;key&gt;                          # 公开读取，无需 token
+PUT    /&lt;key&gt;   x-token: &lt;WRITE_TOKEN&gt;  # 上传 / 覆盖
+DELETE /&lt;key&gt;   x-token: &lt;WRITE_TOKEN&gt;  # 删除</pre>
+  <p>示例：<code>https://&lt;你的域名&gt;/subs/cloudflare-ips.txt</code></p>
+  <h2>部署后需要做的事</h2>
+  <ol>
+    <li>在 <strong>项目设置 → 环境管理 → 编辑（生产）→ 环境变量</strong> 中设置 <code>WRITE_TOKEN</code>，然后重新部署一次。</li>
+    <li>用 curl 验证上传与读取：<code>curl.exe -X PUT "https://&lt;你的域名&gt;/subs/test.txt" -H "x-token: &lt;WRITE_TOKEN&gt;" --data "hello"</code></li>
+    <li>把 <code>https://&lt;你的域名&gt;</code> 和 <code>WRITE_TOKEN</code> 填入 iptest-web 的云端同步配置。</li>
+  </ol>
+  <p>存储数据持久化在 EdgeOne Makers Blob（免费额度 1GB），首次写入时自动创建命名空间，无需在控制台绑定存储。</p>
+</body>
+</html>

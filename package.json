@@ -1,0 +1,12 @@
+{
+  "name": "edgeone-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EdgeOne Makers 云端同步服务：上传订阅/结果文件到 Blob，公开 URL 读取",
+  "scripts": {
+    "build": "echo no-build-needed"
+  },
+  "dependencies": {
+    "@edgeone/pages-blob": "^0.0.16"
+  }
+}
