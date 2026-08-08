@@ -1,23 +1,28 @@
-﻿// cloudsync §7 协议 —— EdgeOne 边缘函数（KV 版）
+// edgeone-sync —— EdgeOne 边缘函数（Blob 版）
 //
 //   GET    /<key>                    → 200 原文（公开读，无鉴权）
 //   PUT    /<key>  x-token: <token>   → 200 {"url": "...", "size": N}
 //   DELETE /<key>  x-token: <token>   → 200 {"ok": true}
 //
+// 与 KV 版的区别：
+//   - Blob 免绑定（无需在控制台绑定存储），getStore() 直接可用；
+//   - 支持目录/中文/带点文件名（key 形如 subs/filename.txt）；
+//   - 强一致，写完立读即可看到新内容；
+//   - 单对象上限 25 MiB。
+//
 // 部署要求（EdgeOne 控制台）：
 //   1. 创建边缘函数，粘贴本文件；
-//   2. 绑定 KV 存储，绑定名必须是 my_kv（本文件按该名字 import）；
-//   3. 添加环境变量 WRITE_TOKEN（写 token）；（可选 PUBLIC_BASE_URL）
-//   4. 发布并挂到域名路径。
+//   2. 添加环境变量 WRITE_TOKEN（写 token）；（可选 PUBLIC_BASE_URL）
+//   3. 发布并挂到域名路径。
 //
-// 注意：EdgeOne KV 的 key 只允许 [A-Za-z0-9_] 且 <=512B；cloudsync 客户端
-//       会自动把文件名编码为安全 key（如 s_xxxx），因此无需在这里转义。
-// KV 是最终一致（<=60s）；客户端回读校验会容忍。
-// 需要“目录 + 原文件名 + 强一致”时用 server/edgeone-blob 版。
+// 若运行时未提供 `import { getStore } from "cloudflare:blob"`，
+// 可改用全局 getStore()（两种写法选一种，勿同时使用）。
 
-import { my_kv } from "cloudflare:kv";
+import { getStore } from "cloudflare:blob";
 
 const MAX_SIZE = 25 * 1024 * 1024; // 25 MiB
+
+const store = getStore();
 
 export default {
   async fetch(request, env) {
@@ -43,17 +48,17 @@ export default {
         if (body.byteLength > MAX_SIZE) {
           return json({ error: "payload too large (max 25MB)" }, 413);
         }
-        await my_kv.put(key, body);
+        await store.set(key, body);
         const publicUrl = (env.PUBLIC_BASE_URL || url.origin) + url.pathname;
         return json({ url: publicUrl, size: body.byteLength, key }, 200);
       }
 
       case "GET": {
-        const value = await my_kv.get(key);
-        if (value === null) {
+        const file = await store.get(key);
+        if (!file) {
           return json({ error: "not found" }, 404);
         }
-        return new Response(value, {
+        return new Response(file.body, {
           headers: {
             "content-type": "text/plain; charset=utf-8",
             "cache-control": "public, max-age=60",
@@ -66,7 +71,7 @@ export default {
         if (!authorized(request, env)) {
           return json({ error: "forbidden: missing or invalid write token" }, 403);
         }
-        await my_kv.delete(key);
+        await store.delete(key);
         return json({ ok: true, key }, 200);
       }
 
