@@ -3,822 +3,575 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EdgeOne File Hub · 云端文件 + URL 反代</title>
+<title>EdgeOne File Hub</title>
 <style>
 :root{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1f2937;background:#f6f7f9}
-*{box-sizing:border-box}
-body{margin:0}
-header{background:#fff;border-bottom:1px solid #e5e7eb}
-.wrap,main{max-width:960px;margin:auto;padding-left:20px;padding-right:20px}
-.top{height:64px;display:flex;align-items:center;justify-content:space-between}
-.brand{font-size:20px;font-weight:700}
-.sub{color:#6b7280;font-size:13px;margin-top:2px}
-main{padding-top:24px;padding-bottom:40px}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px}
-.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.panel-title h1{margin:0;font-size:19px}
-h2{margin:0;font-size:17px}
-h3{margin:0 0 12px;font-size:15px;color:#374151}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;display:flex;flex-direction:column}
+header{background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:9}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+.top{height:56px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:17px;font-weight:700}
+.sub{color:#6b7280;font-size:12px;margin-top:1px}
+main{flex:1;max-width:960px;margin:0 auto;padding:20px;width:100%}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin-bottom:16px}
+h1{font-size:17px;font-weight:700}
+h2{font-size:15px;font-weight:600}
 .muted{color:#6b7280;font-size:13px}
-.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-button{font-family:inherit;border:0;border-radius:8px;padding:9px 14px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px}
+button{font-family:inherit;border:0;border-radius:8px;padding:8px 14px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px}
 button:hover{filter:brightness(1.06)}
 button:disabled{opacity:.55;cursor:not-allowed}
-button.secondary{background:#eef2ff;color:#1d4ed8}
+button.sm{padding:5px 10px;font-size:12px}
+button.outline{background:#fff;border:1px solid #d1d5db;color:#374151}
 button.danger{background:#fef2f2;color:#b91c1c}
-button.small{padding:6px 11px;font-size:12px}
-button.copy-btn{background:#f3f4f6;color:#374151;padding:5px 11px;font-size:12px;flex:none}
+button.copy-btn{background:#f3f4f6;color:#374151;padding:5px 10px;font-size:12px}
 button.copy-btn.done{background:#dcfce7;color:#15803d}
-.manage-link{background:#fff;border:1px solid #d1d5db;color:#374151}
-input[type=text],input[type=password],textarea{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit;color:inherit}
+input[type=text],input[type=password],textarea{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:14px;outline:none;font-family:inherit}
 input:focus,textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}
-textarea{resize:vertical;line-height:1.6}
-.field{margin-bottom:12px}
-.field label{display:block;color:#6b7280;font-size:13px;margin-bottom:5px}
-.file-input{width:100%;font-size:14px;padding:8px 0}
-.message{margin-top:10px;font-size:14px;word-break:break-all}
-.message.error{color:#b91c1c}
-.message.success{color:#15803d}
-.message.status{color:#6b7280}
+textarea{resize:vertical;line-height:1.5}
+.field{margin-bottom:10px}
+.field label{display:block;color:#6b7280;font-size:12px;margin-bottom:4px;font-weight:500}
+.message{margin-top:8px;font-size:13px;word-break:break-all}
+.message.error{color:#b91c1c}.message.success{color:#15803d}.message.status{color:#6b7280}
 .hidden{display:none!important}
+
+/* proxy */
 .proxy-row{display:flex;gap:8px}
-.proxy-result{margin-top:12px;padding:12px 14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px}
-.proxy-result .hint{margin:8px 0 0}
-.folder-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px;border-radius:999px}
-.chip.active{background:#2563eb;color:#fff}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:11px 10px;border-bottom:1px solid #edf0f2;text-align:left;vertical-align:middle}
-th{color:#6b7280;font-size:13px;font-weight:600;white-space:nowrap}
-.file-name{font-weight:600;word-break:break-all}
-.badge{display:inline-block;background:#eff6ff;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:2px;white-space:nowrap}
-.file-folder{color:#9ca3af;font-size:12px;margin-top:3px;word-break:break-all}
-.source{color:#9ca3af;font-size:12px;margin-top:3px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.urlbox{display:flex;align-items:center;gap:8px;max-width:360px}
-.urlbox.wide{max-width:100%}
-.url{display:block;color:#2563eb;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px;vertical-align:middle}
-.urlbox.wide .url{max-width:calc(100% - 150px)}
-.url:hover{text-decoration:underline}
-.file-actions{display:flex;gap:6px;flex-wrap:wrap}
-.file-actions button{padding:6px 10px;font-size:12px}
-.empty{text-align:center;padding:34px 10px;color:#6b7280}
-.admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-.tab{background:#f3f4f6;color:#374151;padding:7px 14px;border-radius:999px;font-size:13px}
-.tab.active{background:#2563eb;color:#fff}
-.drop-zone{border:2px dashed #c7d2fe;border-radius:10px;background:#f5f7ff;color:#4f46e5;text-align:center;padding:26px 12px;cursor:pointer;font-size:14px;margin-bottom:12px}
-.drop-zone.over{border-color:#2563eb;background:#eef2ff}
-.help{margin-top:14px;font-size:13px;color:#6b7280;border:1px dashed #e5e7eb;border-radius:10px;padding:12px 14px}
-.help summary{cursor:pointer;font-weight:600;color:#374151}
-.help ol{margin:8px 0 0;padding-left:20px;line-height:1.9}
-footer{color:#9ca3af;font-size:12px;text-align:center;padding:10px 20px 30px}
-.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}
-.modal{width:min(430px,100%);background:#fff;border-radius:12px;padding:22px;box-shadow:0 18px 45px rgba(0,0,0,.2)}
-.modal h2{margin:0 0 6px;font-size:18px}
+.proxy-result{margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.proxy-result a{color:#2563eb;text-decoration:none;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px}
+
+/* breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:4px;margin-bottom:14px;font-size:14px;flex-wrap:wrap}
+.breadcrumb a{color:#2563eb;text-decoration:none;cursor:pointer}
+.breadcrumb a:hover{text-decoration:underline}
+.breadcrumb .sep{color:#d1d5db}
+.breadcrumb .cur{color:#374151;font-weight:600}
+
+/* folder cards */
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:16px}
+.folder-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:border-color .15s}
+.folder-card:hover{border-color:#2563eb;background:#eff6ff}
+.folder-card .icon{font-size:22px}
+.folder-card .name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* file items */
+.file-item{border:1px solid #edf0f2;border-radius:10px;padding:12px 14px;margin-bottom:6px;transition:background .1s}
+.file-item:hover{background:#fafbfc}
+.file-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.file-head .icon{font-size:18px}
+.file-head .fname{font-weight:600;font-size:14px}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;white-space:nowrap;margin-left:4px}
+.badge-local{background:#eff6ff;color:#1d4ed8}
+.badge-remote{background:#fef3c7;color:#b45309}
+.badge-manual{background:#ede9fe;color:#6d28d9}
+.file-meta{color:#9ca3af;font-size:12px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.file-url{display:flex;align-items:center;gap:6px;margin-top:6px}
+.file-url a{color:#2563eb;text-decoration:none;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}
+.file-actions{display:flex;gap:5px;margin-top:6px}
+.empty{text-align:center;padding:30px 10px;color:#9ca3af;font-size:14px}
+
+/* admin bar */
+.admin-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.admin-bar h2{margin-right:auto}
+
+/* FAB */
+.fab{position:fixed;bottom:24px;right:24px;width:50px;height:50px;border-radius:50%;background:#2563eb;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.4);z-index:5;border:0;transition:transform .15s}
+.fab:hover{transform:scale(1.08)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
+.modal{width:min(460px,100%);background:#fff;border-radius:14px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.22)}
+.modal h2{margin:0 0 4px}
 .modal .muted{margin:0 0 14px}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-@media(max-width:700px){.top{height:auto;padding-top:14px;padding-bottom:14px;align-items:flex-start}.urlbox{max-width:210px}.url{max-width:120px}.urlbox.wide .url{max-width:200px}.file-folder,.source{max-width:180px}}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.tabs{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+.tab{background:#f3f4f6;color:#374151;padding:6px 13px;border-radius:999px;font-size:13px;border:0;cursor:pointer}
+.tab.active{background:#2563eb;color:#fff}
+.drop{border:2px dashed #c7d2fe;border-radius:10px;background:#f5f7ff;color:#4f46e5;text-align:center;padding:22px 10px;cursor:pointer;font-size:13px;margin-bottom:10px}
+.drop.over{border-color:#2563eb;background:#eef2ff}
+.help-box{margin-top:12px;font-size:12px;color:#6b7280;background:#f9fafb;border:1px dashed #e5e7eb;border-radius:8px;padding:10px 12px;line-height:1.8}
+footer{color:#9ca3af;font-size:11px;text-align:center;padding:10px 20px 28px}
+@media(max-width:700px){.file-url a{max-width:160px}.folder-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap top">
     <div>
-      <div class="brand">云端文件</div>
-      <div class="sub">EdgeOne File Hub · 文件存储 + URL 反代 · 公开读取 · 管理员上传更新</div>
+      <div class="brand">EdgeOne File Hub</div>
+      <div class="sub">云端文件 + URL 反代</div>
     </div>
-    <button class="manage-link" id="manageBtn">管理</button>
+    <button class="outline" id="manageBtn">管理</button>
   </div>
 </header>
 <main>
-
-  <section class="panel">
-    <div class="panel-title">
-      <h1>URL 反代</h1>
-      <span class="muted">把任意网址转成本站链接（只转发，不保存）</span>
-    </div>
+  <!-- URL proxy -->
+  <section class="panel" id="proxyPanel">
+    <h1 style="margin-bottom:8px">URL 反代</h1>
     <div class="proxy-row">
-      <input id="proxyInput" type="text" placeholder="输入需要反代的网址，如 https://example.com/url.txt" spellcheck="false" autocomplete="off">
+      <input id="proxyInput" type="text" placeholder="输入网址，如 https://example.com/url.txt" spellcheck="false" autocomplete="off">
     </div>
     <div id="proxyResult" class="proxy-result hidden">
-      <div class="urlbox wide">
-        <a id="proxyResultUrl" class="url" href="#" target="_blank" rel="noopener"></a>
-        <button type="button" class="copy-btn" id="proxyCopyBtn">复制</button>
-        <button type="button" class="secondary small" id="proxyOpenBtn">打开</button>
-      </div>
-      <p class="muted hint">复制这个链接填到 iptest 等工具，或点“打开”直接查看远端内容。</p>
+      <a id="proxyResultUrl" href="#" target="_blank" rel="noopener"></a>
+      <button type="button" class="copy-btn" id="proxyCopyBtn">复制</button>
+      <button type="button" class="outline sm" id="proxyOpenBtn">打开</button>
     </div>
   </section>
 
+  <!-- file browser -->
   <section class="panel">
-    <div class="panel-title">
-      <h1>文件列表</h1>
-      <div class="actions">
-        <span class="muted" id="listStatus">正在加载…</span>
-        <button class="secondary" id="refreshBtn">刷新</button>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <h1>文件</h1>
+      <span class="muted" id="listStatus"></span>
     </div>
-    <div id="folderBar" class="folder-bar hidden">
-      <span class="muted">文件夹：</span>
-      <div id="folderChips" class="chips"></div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>文件</th>
-            <th>大小</th>
-            <th>更新时间</th>
-            <th>公开地址</th>
-            <th id="actionHead" class="hidden">操作</th>
-          </tr>
-        </thead>
-        <tbody id="fileRows"></tbody>
-      </table>
-      <div id="empty" class="empty hidden">暂时没有上传文件。</div>
-    </div>
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div id="folderGrid" class="folder-grid hidden"></div>
+    <div id="fileList"></div>
+    <div id="empty" class="empty hidden">暂无文件</div>
   </section>
 
-  <section id="adminPanel" class="panel hidden">
-    <div class="admin-head">
-      <h2>管理文件</h2>
-      <div class="actions">
-        <button class="secondary" id="downloadBatBtn">下载通用上传脚本 (.bat)</button>
-        <button class="secondary" id="logoutBtn">退出管理</button>
-      </div>
-    </div>
+  <!-- admin bar (visible when logged in) -->
+  <div id="adminBar" class="admin-bar hidden">
+    <h2>管理</h2>
+    <button class="sm outline" id="downloadBatBtn">下载 upload.bat</button>
+    <button class="sm outline" id="logoutBtn">退出</button>
+  </div>
+</main>
 
+<!-- FAB: upload -->
+<button class="fab hidden" id="fabBtn" title="上传文件">+</button>
+
+<!-- upload modal -->
+<div id="uploadModal" class="modal-bg hidden">
+  <div class="modal">
+    <h2>上传文件</h2>
+    <p class="muted" id="uploadPathHint">当前路径：根目录</p>
     <div class="tabs" id="sourceTabs">
       <button type="button" class="tab active" data-tab="local">本地文件</button>
       <button type="button" class="tab" data-tab="remote">远程 URL</button>
       <button type="button" class="tab" data-tab="manual">手动输入</button>
     </div>
-
     <div id="tabLocal">
-      <div id="dropZone" class="drop-zone" tabindex="0">点击选择文件，或将文件拖到这里</div>
+      <div id="dropZone" class="drop" tabindex="0">点击选择文件，或拖拽到这里</div>
       <input id="fileInput" class="hidden" type="file">
       <div id="chosenFile" class="muted hidden"></div>
-      <div class="field" style="margin-top:12px">
-        <label for="pathInput">云端路径（支持文件夹，如 docs/example.txt）</label>
-        <input id="pathInput" type="text" placeholder="例如：docs/example.txt" spellcheck="false">
+      <div class="field" style="margin-top:8px">
+        <label for="pathInput">云端路径</label>
+        <input id="pathInput" type="text" placeholder="如 docs/example.txt" spellcheck="false">
       </div>
-      <div class="actions">
-        <button id="uploadBtn">上传 / 更新</button>
-      </div>
+      <button id="uploadBtn">上传</button>
       <div id="uploadMessage" class="message"></div>
     </div>
-
     <div id="tabRemote" class="hidden">
       <div class="field">
-        <label for="proxyUrlInput">远程 URL（http/https，内容 ≤ 1MB）</label>
+        <label for="proxyUrlInput">远程 URL</label>
         <input id="proxyUrlInput" type="text" placeholder="https://example.com/url.txt" spellcheck="false">
       </div>
       <div class="field">
-        <label for="proxyKeyInput">保存为云端路径（留空自动取远程文件名）</label>
-        <input id="proxyKeyInput" type="text" placeholder="例如：remote/url.txt" spellcheck="false">
+        <label for="proxyKeyInput">保存为云端路径（留空取远程文件名）</label>
+        <input id="proxyKeyInput" type="text" spellcheck="false">
       </div>
-      <div class="actions">
-        <button id="proxyBtn">拉取并保存</button>
-      </div>
+      <button id="proxyBtn">拉取并保存</button>
       <div id="remoteMessage" class="message"></div>
     </div>
-
     <div id="tabManual" class="hidden">
       <div class="field">
         <label for="manualKeyInput">文件名 / 云端路径</label>
-        <input id="manualKeyInput" type="text" placeholder="例如：url.txt 或 remote/url.txt" spellcheck="false">
+        <input id="manualKeyInput" type="text" spellcheck="false">
       </div>
       <div class="field">
         <label for="manualContentInput">内容（≤ 1MB）</label>
-        <textarea id="manualContentInput" rows="6" placeholder="在这里粘贴或输入文件内容…" spellcheck="false"></textarea>
+        <textarea id="manualContentInput" rows="5" placeholder="粘贴或输入内容…" spellcheck="false"></textarea>
       </div>
-      <div class="actions">
-        <button id="manualBtn">保存为文件</button>
-      </div>
+      <button id="manualBtn">保存</button>
       <div id="manualMessage" class="message"></div>
     </div>
-
-    <details class="help">
-      <summary>使用说明</summary>
-      <ol>
-        <li><b>URL 反代</b>：主页输入任意网址，自动生成 <code>/api/proxy?url=...</code> 链接，复制或打开即可读取远端内容；只转发不保存，公开可用（可在环境变量设 <code>PUBLIC_PROXY=off</code> 关闭）。</li>
-        <li><b>本地文件</b>：把文件拖进选择区或点击选择，自动填好云端路径，点“上传 / 更新”；同名路径直接覆盖。</li>
-        <li><b>远程 URL</b>：粘贴 http/https 地址，可指定保存路径，点“拉取并保存”，远程内容会存成云端文件。</li>
-        <li><b>手动输入</b>：直接粘贴文本内容并命名保存，适合手工维护 url.txt 这类小文件。</li>
-        <li><b>上传脚本</b>：下载通用 <code>upload.bat</code>，把文件拖到脚本上即可上传，适合批量更新。</li>
-        <li><b>文件夹</b>：云端路径里的 <code>/</code> 就是文件夹，主页顶部可以按文件夹筛选。</li>
-        <li>文件列表每一行的“复制”按钮可以复制公开链接，发给别人即可读取。</li>
-      </ol>
-    </details>
-  </section>
-
-  <footer>EdgeOne File Hub · Blob 持久化存储 · 单文件最大 1MB · URL 反代不落盘</footer>
-</main>
-
-<div id="modalBackdrop" class="modal-backdrop hidden">
-  <div class="modal">
-    <h2>管理员验证</h2>
-    <p class="muted">请输入部署时在环境变量中设置的 WRITE_TOKEN。</p>
-    <input id="tokenInput" type="password" placeholder="WRITE_TOKEN" autocomplete="off">
-    <div id="authMessage" class="message"></div>
-    <div class="modal-actions">
-      <button class="secondary" id="cancelBtn">取消</button>
-      <button id="verifyBtn">验证</button>
+    <div class="modal-foot">
+      <button type="button" class="outline" id="uploadCancelBtn">关闭</button>
+    </div>
+    <div class="help-box">
+      <b>本地文件</b>：拖拽或点击选择，同路径自动覆盖<br>
+      <b>远程 URL</b>：拉取远端内容保存为云端文件<br>
+      <b>手动输入</b>：直接粘贴文本内容并命名<br>
+      <b>upload.bat</b>：下载通用脚本，拖文件到脚本上即可上传
     </div>
   </div>
 </div>
 
+<!-- auth modal -->
+<div id="authModal" class="modal-bg hidden">
+  <div class="modal">
+    <h2>管理员登录</h2>
+    <p class="muted">输入管理 Token</p>
+    <div class="field">
+      <input id="tokenInput" type="password" placeholder="Token" autocomplete="off">
+    </div>
+    <div id="authMessage" class="message"></div>
+    <div class="modal-foot">
+      <button type="button" class="outline" id="cancelBtn">取消</button>
+      <button id="verifyBtn">登录</button>
+    </div>
+  </div>
+</div>
+
+<footer>EdgeOne File Hub · Blob 持久化 · 单文件最大 1MB · URL 反代不落盘</footer>
+
 <script>
-(function () {
+(function(){
   "use strict";
+  var $=function(id){return document.getElementById(id)};
+  function show(id,v){var e=$(id);if(!e)return;e.classList.toggle("hidden",!v)}
+  function setMessage(id,msg,type){var e=$(id);if(!e)return;e.textContent=msg;e.className="message"+(type?" "+type:"")}
 
-  var base = location.origin;
-  function $(id) { return document.getElementById(id); }
-  function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
-  function setMessage(id, text, type) {
-    var el = $(id);
-    el.textContent = text || "";
-    el.className = "message " + (type || "");
+  var base=location.origin;
+  var files=[];
+  var currentDir="";
+  var token=sessionStorage.getItem("cloudsync_token")||"";
+  var isAdmin=false;
+  var pickedFile=null;
+  var proxyUrl="";
+
+  function authHeaders(){return {"Authorization":"Bearer "+token}}
+  function encodeKey(k){return k.split("/").map(encodeURIComponent).join("/")}
+  function isValidPath(p){return p&&/^[^\\]*$/.test(p)&&!/\.\./.test(p)&&/^([^\x00-\x1f]*[^\\/\s])?$/.test(p)}
+
+  function folderOf(key){var i=key.indexOf("/");return i>0?key.substring(0,i):""}
+  function baseName(key){var i=key.lastIndexOf("/");return i>=0?key.substring(i+1):key}
+  function formatSize(b){if(!b||b<=0)return "0 B";var u=["B","KB","MB","GB"];var i=Math.floor(Math.log(b)/Math.log(1024));if(i>=u.length)i=u.length-1;return(b/Math.pow(1024,i)).toFixed(i?1:0)+" "+u[i]}
+  function formatTime(t){if(!t)return "";try{var d=new Date(t);var p=function(n){return n<10?"0"+n:n};return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds())}catch(e){return t}}
+
+  function badgeClass(label){
+    if(label==="远程拉取")return "badge-remote";
+    if(label==="手动输入")return "badge-manual";
+    return "badge-local";
   }
 
-  var files = [];
-  var token = sessionStorage.getItem("cloudsync_token") || "";
-  var isAdmin = false;
-  var currentFolder = "";
-  var pickedFile = null;
-  var proxyUrl = "";
+  function fileIcon(key){
+    var ext=(key.split(".").pop()||"").toLowerCase();
+    if(["jpg","jpeg","png","gif","svg","webp","ico"].indexOf(ext)>=0)return "🖼️";
+    if(["mp3","wav","ogg","flac","aac"].indexOf(ext)>=0)return "🎵";
+    if(["mp4","avi","mov","mkv","webm"].indexOf(ext)>=0)return "🎬";
+    if(["zip","gz","tar","rar","7z"].indexOf(ext)>=0)return "📦";
+    if(["pdf"].indexOf(ext)>=0)return "📄";
+    if(["json","js","mjs","ts","py","sh","bat","cmd","ps1"].indexOf(ext)>=0)return "💻";
+    if(["html","htm","css","xml","yaml","yml"].indexOf(ext)>=0)return "🌐";
+    if(["csv","tsv","xls","xlsx"].indexOf(ext)>=0)return "📊";
+    if(["txt","md","ini","conf","log","cfg"].indexOf(ext)>=0)return "📃";
+    return "📁";
+  }
 
-  function encodeKey(key) {
-    return key.split("/").map(encodeURIComponent).join("/");
-  }
-  function folderOf(key) {
-    var i = key.lastIndexOf("/");
-    return i < 0 ? "" : key.slice(0, i);
-  }
-  function baseName(key) {
-    var i = key.lastIndexOf("/");
-    return i < 0 ? key : key.slice(i + 1);
-  }
-  function formatSize(value) {
-    var size = Number(value) || 0;
-    if (size < 1024) return size + " B";
-    if (size < 1048576) return (size / 1024).toFixed(1) + " KB";
-    return (size / 1048576).toFixed(2) + " MB";
-  }
-  function formatTime(value) {
-    var d = new Date(value);
-    return isNaN(d.getTime()) ? "-" : d.toLocaleString();
-  }
-  function authHeaders() {
-    return token ? { Authorization: "Bearer " + token } : {};
-  }
-  function isValidPath(path) {
-    if (!path || path.length > 500) return false;
-    if (path.indexOf("..") !== -1 || path.indexOf("\\") !== -1) return false;
-    if (path.charAt(0) === "/") return false;
-    if (path.indexOf("__meta/") === 0) return false;
-    if (/[:*?"<>|]/.test(path)) return false;
-    if (/[\u0000-\u001f]/.test(path)) return false;
-    return true;
-  }
-  function explainError(code) {
-    var map = {
-      invalid_token: "Token 不正确或已失效",
-      server_token_not_configured: "服务端还没有设置 WRITE_TOKEN，请先在环境变量中添加并重新部署",
-      file_too_large: "内容超过 1MB，平台限制",
-      invalid_key: "云端路径不符合要求",
-      reserved_key: "这个路径不能使用",
-      invalid_url: "网址无效，只支持 http/https",
-      blocked_url: "该网址被安全策略拦截（不允许访问内网 / 本机地址）",
-      remote_fetch_failed: "远程地址拉取失败",
-      server_error: "服务端发生错误，请确认已重新部署"
+  function explainError(code){
+    var map={
+      invalid_token:"Token 不正确",server_token_not_configured:"服务端未配置 Token",
+      file_too_large:"文件超过 1MB",invalid_key:"云端路径不合法",reserved_key:"路径被系统占用",
+      invalid_url:"远程地址格式不正确",invalid_scheme:"只支持 http/https",
+      blocked_url:"被安全策略拦截",remote_fetch_failed:"远程地址拉取失败"
     };
-    return map[code] || code || "操作失败";
+    return map[code]||code||"操作失败";
   }
 
-  function copyUrl(url, btn) {
-    function done() {
-      btn.classList.add("done");
-      btn.textContent = "已复制";
-      setTimeout(function () {
-        btn.classList.remove("done");
-        btn.textContent = "复制";
-      }, 1600);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(done, function () {
-        fallbackCopy(url);
-        done();
-      });
-    } else {
-      fallbackCopy(url);
-      done();
-    }
-  }
-  function fallbackCopy(text) {
-    var ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.top = "-100px";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); } catch (e) {}
-    ta.remove();
+  function copyUrl(url,btn){
+    function done(){btn.classList.add("done");btn.textContent="已复制";setTimeout(function(){btn.classList.remove("done");btn.textContent="复制"},1500)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,done)}else{var ta=document.createElement("textarea");ta.value=url;ta.readOnly=true;ta.style.cssText="position:fixed;top:-100px";document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}ta.remove();done()}
   }
 
-  // ---------- URL 反代 ----------
-  function buildProxyUrl(raw) {
-    var value = String(raw || "").trim();
-    if (!value) return "";
-    if (!/^https?:\/\//i.test(value)) value = "https://" + value;
-    var u;
-    try { u = new URL(value); } catch (e) { return ""; }
-    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
-    return base + "/api/proxy?url=" + encodeURIComponent(u.toString());
+  // ---- proxy ----
+  function buildProxyUrl(raw){
+    var v=String(raw||"").trim();if(!v)return"";
+    if(!/^https?:\/\//i.test(v))v="https://"+v;
+    try{var u=new URL(v);if(u.protocol!=="http:"&&u.protocol!=="https:")return"";return base+"/api/proxy?url="+encodeURIComponent(u.toString())}catch(e){return""}
   }
-  function updateProxy() {
-    proxyUrl = buildProxyUrl($("proxyInput").value);
-    if (!proxyUrl) {
-      show("proxyResult", false);
-      return;
-    }
-    var a = $("proxyResultUrl");
-    a.href = proxyUrl;
-    a.textContent = proxyUrl;
-    $("proxyCopyBtn").textContent = "复制";
-    $("proxyCopyBtn").classList.remove("done");
-    show("proxyResult", true);
+  function updateProxy(){
+    proxyUrl=buildProxyUrl($("proxyInput").value);
+    show("proxyResult",!!proxyUrl);
+    if(proxyUrl){var a=$("proxyResultUrl");a.href=proxyUrl;a.textContent=proxyUrl; $("proxyCopyBtn").textContent="复制";$("proxyCopyBtn").classList.remove("done")}
   }
 
-  // ---------- 文件列表 ----------
-  function listFolders() {
-    var set = new Set();
-    files.forEach(function (f) {
-      var d = folderOf(f.key);
-      if (d) set.add(d);
+  // ---- file browser ----
+  function getDisplayData(){
+    var prefix=currentDir?currentDir+"/":"";
+    var folders={};
+    var direct=[];
+    files.forEach(function(f){
+      var rel=f.key.indexOf(prefix)===0?f.key.slice(prefix.length):null;
+      if(rel===null||rel==="")return;
+      var slash=rel.indexOf("/");
+      if(slash>0){folders[rel.slice(0,slash)]=true}
+      else{direct.push(f)}
     });
-    return Array.from(set).sort();
+    return{folders:Object.keys(folders).sort(),files:direct};
   }
-  function render() {
-    renderFolderBar();
-    renderRows();
-  }
-  function renderFolderBar() {
-    var folders = listFolders();
-    show("folderBar", folders.length > 0);
-    var chips = $("folderChips");
-    chips.replaceChildren();
-    function addChip(label, value) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip" + (currentFolder === value ? " active" : "");
-      b.textContent = label;
-      b.onclick = function () {
-        currentFolder = value;
-        render();
-      };
-      chips.appendChild(b);
+
+  function renderBreadcrumb(){
+    var bc=$("breadcrumb");bc.replaceChildren();
+    var parts=currentDir?currentDir.split("/"):[];
+    function addSeg(label,dir,clickable){
+      if(bc.children.length>0){var sp=document.createElement("span");sp.className="sep";sp.textContent=" › ";bc.appendChild(sp)}
+      if(clickable){
+        var a=document.createElement("a");a.textContent=label;a.onclick=function(){currentDir=dir;render()};bc.appendChild(a);
+      }else{
+        var s=document.createElement("span");s.className="cur";s.textContent=label;bc.appendChild(s);
+      }
     }
-    addChip("全部文件", "");
-    folders.forEach(function (d) { addChip(d, d); });
-  }
-  function renderRows() {
-    var body = $("fileRows");
-    body.replaceChildren();
-    show("actionHead", isAdmin);
-
-    if (!files.length) {
-      show("empty", true);
-      $("empty").textContent = "暂时没有上传文件。";
-      $("listStatus").textContent = "0 个文件";
-      return;
-    }
-
-    var visible = currentFolder
-      ? files.filter(function (f) { return folderOf(f.key) === currentFolder; })
-      : files;
-
-    $("listStatus").textContent = visible.length + " / " + files.length + " 个文件" +
-      (currentFolder ? "（" + currentFolder + "）" : "");
-
-    if (!visible.length) {
-      show("empty", true);
-      $("empty").textContent = "该文件夹下暂无文件。";
-      return;
-    }
-    show("empty", false);
-
-    visible.forEach(function (file) {
-      var row = document.createElement("tr");
-
-      var nameCell = document.createElement("td");
-      var nameDiv = document.createElement("div");
-      nameDiv.className = "file-name";
-      nameDiv.textContent = baseName(file.key);
-      nameCell.appendChild(nameDiv);
-      if (file.sourceLabel) {
-        var badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = file.sourceLabel;
-        nameDiv.appendChild(badge);
-      }
-      if (!currentFolder) {
-        var folderDiv = document.createElement("div");
-        folderDiv.className = "file-folder";
-        folderDiv.textContent = folderOf(file.key) ? folderOf(file.key) + "/" : "根目录 /";
-        nameCell.appendChild(folderDiv);
-      }
-      if (file.source && file.source.indexOf("http") === 0) {
-        var srcDiv = document.createElement("div");
-        srcDiv.className = "source";
-        srcDiv.title = file.source;
-        srcDiv.textContent = "来源: " + file.source;
-        nameCell.appendChild(srcDiv);
-      }
-      row.appendChild(nameCell);
-
-      var sizeCell = document.createElement("td");
-      sizeCell.className = "muted";
-      sizeCell.textContent = formatSize(file.size);
-      row.appendChild(sizeCell);
-
-      var timeCell = document.createElement("td");
-      timeCell.className = "muted";
-      timeCell.textContent = formatTime(file.updatedAt);
-      row.appendChild(timeCell);
-
-      var urlCell = document.createElement("td");
-      var urlBox = document.createElement("div");
-      urlBox.className = "urlbox";
-      var link = document.createElement("a");
-      link.className = "url";
-      link.href = file.url;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = file.url;
-      var copyBtn = document.createElement("button");
-      copyBtn.type = "button";
-      copyBtn.className = "copy-btn";
-      copyBtn.textContent = "复制";
-      copyBtn.onclick = function () { copyUrl(file.url, copyBtn); };
-      urlBox.append(link, copyBtn);
-      urlCell.appendChild(urlBox);
-      row.appendChild(urlCell);
-
-      if (isAdmin) {
-        var actionCell = document.createElement("td");
-        var actionBox = document.createElement("div");
-        actionBox.className = "file-actions";
-        var updateBtn = document.createElement("button");
-        updateBtn.type = "button";
-        updateBtn.className = "secondary";
-        updateBtn.textContent = "更新";
-        updateBtn.onclick = function () { chooseUpdate(file.key); };
-        var delBtn = document.createElement("button");
-        delBtn.type = "button";
-        delBtn.className = "danger";
-        delBtn.textContent = "删除";
-        delBtn.onclick = function () { removeFile(file.key); };
-        actionBox.append(updateBtn, delBtn);
-        actionCell.appendChild(actionBox);
-        row.appendChild(actionCell);
-      }
-
-      body.appendChild(row);
+    addSeg("📂 全部文件","",true);
+    var accum="";
+    parts.forEach(function(p,i){
+      accum=accum?(accum+"/"+p):p;
+      addSeg(p,accum,i<parts.length-1);
     });
   }
 
-  async function loadFiles() {
-    $("listStatus").textContent = "正在加载…";
-    try {
-      var response = await fetch(base + "/api/files", { cache: "no-store" });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      var data = await response.json();
-      files = data.files || [];
-      render();
-    } catch (e) {
-      files = [];
-      render();
-      $("listStatus").textContent = "加载失败";
-      $("empty").textContent = "文件列表加载失败，请刷新重试。";
-    }
-  }
-
-  // ---------- 管理面板 ----------
-  function switchTab(name) {
-    var tabs = ["local", "remote", "manual"];
-    tabs.forEach(function (t) {
-      show("tab" + t.charAt(0).toUpperCase() + t.slice(1), t === name);
+  function renderFolders(folders){
+    var g=$("folderGrid");
+    if(!folders.length){show("folderGrid",false);return}
+    show("folderGrid",true);
+    g.replaceChildren();
+    folders.forEach(function(name){
+      var card=document.createElement("div");card.className="folder-card";
+      var icon=document.createElement("span");icon.className="icon";icon.textContent="📁";
+      var nm=document.createElement("span");nm.className="name";nm.textContent=name;
+      card.append(icon,nm);
+      card.onclick=function(){currentDir=currentDir?(currentDir+"/"+name):name;render()};
+      g.appendChild(card);
     });
-    var btns = document.querySelectorAll("#sourceTabs .tab");
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].classList.toggle("active", btns[i].getAttribute("data-tab") === name);
-    }
-  }
-  function setPickedFile(file) {
-    pickedFile = file || null;
-    if (pickedFile) {
-      show("chosenFile", true);
-      $("chosenFile").textContent = "已选择：" + pickedFile.name + "（" + formatSize(pickedFile.size) + "）";
-      var name = pickedFile.name;
-      if (currentFolder) name = currentFolder + "/" + name;
-      $("pathInput").value = name;
-    } else {
-      show("chosenFile", false);
-    }
   }
 
-  async function upload() {
-    var path = $("pathInput").value.trim();
-    var file = pickedFile;
-    if (!path) return setMessage("uploadMessage", "请填写云端路径");
-    if (!file) return setMessage("uploadMessage", "请先选择本地文件（或拖拽到选择区）");
-    if (!isValidPath(path)) return setMessage("uploadMessage", "云端路径不符合要求");
-    if (file.size > 1048576) return setMessage("uploadMessage", "文件超过 1MB，平台限制");
-    if (!token) return setMessage("uploadMessage", "请先验证 Token");
-
-    $("uploadBtn").disabled = true;
-    setMessage("uploadMessage", "上传中…", "status");
-    try {
-      var response = await fetch(base + "/" + encodeKey(path), {
-        method: "POST",
-        headers: Object.assign({}, authHeaders(), { "content-type": "text/plain; charset=utf-8" }),
-        body: await file.arrayBuffer()
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) {
-        setMessage("uploadMessage", explainError(data.error) + "（HTTP " + response.status + "）");
-        return;
+  function renderFiles(direct){
+    var list=$("fileList");list.replaceChildren();
+    show("empty",direct.length===0);
+    if(!direct.length)return;
+    direct.sort(function(a,b){return String(b.updatedAt||"").localeCompare(String(a.updatedAt||""))});
+    direct.forEach(function(file){
+      var item=document.createElement("div");item.className="file-item";
+      // head row: icon + name + badge
+      var head=document.createElement("div");head.className="file-head";
+      var ic=document.createElement("span");ic.className="icon";ic.textContent=fileIcon(file.key);
+      var nm=document.createElement("span");nm.className="fname";nm.textContent=baseName(file.key);
+      head.appendChild(ic);head.appendChild(nm);
+      if(file.sourceLabel){
+        var bd=document.createElement("span");bd.className="badge "+badgeClass(file.sourceLabel);bd.textContent=file.sourceLabel;head.appendChild(bd);
       }
-      setMessage("uploadMessage", "上传成功：" + data.file.url, "success");
-      $("fileInput").value = "";
-      setPickedFile(null);
-      await loadFiles();
-    } catch (e) {
-      setMessage("uploadMessage", "上传失败，请检查网络或重新验证 Token");
-    } finally {
-      $("uploadBtn").disabled = false;
-    }
-  }
-
-  async function proxyPull() {
-    var url = $("proxyUrlInput").value.trim();
-    var key = $("proxyKeyInput").value.trim();
-    if (!/^https?:\/\//i.test(url)) return setMessage("remoteMessage", "请输入 http/https 开头的远程地址");
-    if (key && !isValidPath(key)) return setMessage("remoteMessage", "云端路径不符合要求");
-    if (!token) return setMessage("remoteMessage", "请先验证 Token");
-
-    $("proxyBtn").disabled = true;
-    setMessage("remoteMessage", "正在拉取…", "status");
-    try {
-      var response = await fetch(base + "/api/proxy", {
-        method: "POST",
-        headers: Object.assign({}, authHeaders(), { "content-type": "application/json" }),
-        body: JSON.stringify({ url: url, key: key || undefined })
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) {
-        setMessage("remoteMessage", explainError(data.error) + "（HTTP " + response.status + "）");
-        return;
+      item.appendChild(head);
+      // meta row
+      var meta=document.createElement("div");meta.className="file-meta";
+      meta.innerHTML="<span>"+formatSize(file.size)+"</span><span>"+formatTime(file.updatedAt)+"</span>";
+      if(file.source&&file.source.indexOf("http")===0){
+        var src=document.createElement("span");src.textContent="来源: "+file.source;src.title=file.source;meta.appendChild(src);
       }
-      setMessage("remoteMessage", "拉取成功：" + data.file.url, "success");
-      $("proxyUrlInput").value = "";
-      $("proxyKeyInput").value = "";
-      await loadFiles();
-    } catch (e) {
-      setMessage("remoteMessage", "拉取失败，请检查远程地址或网络");
-    } finally {
-      $("proxyBtn").disabled = false;
-    }
-  }
-
-  async function manualSave() {
-    var path = $("manualKeyInput").value.trim();
-    var text = $("manualContentInput").value;
-    if (!path) return setMessage("manualMessage", "请填写文件名 / 云端路径");
-    if (!text) return setMessage("manualMessage", "请输入要保存的内容");
-    if (!isValidPath(path)) return setMessage("manualMessage", "云端路径不符合要求");
-    if (new Blob([text]).size > 1048576) return setMessage("manualMessage", "内容超过 1MB，平台限制");
-    if (!token) return setMessage("manualMessage", "请先验证 Token");
-
-    $("manualBtn").disabled = true;
-    setMessage("manualMessage", "保存中…", "status");
-    try {
-      var response = await fetch(base + "/" + encodeKey(path), {
-        method: "POST",
-        headers: Object.assign({}, authHeaders(), {
-          "content-type": "text/plain; charset=utf-8",
-          "x-source": "manual"
-        }),
-        body: text
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) {
-        setMessage("manualMessage", explainError(data.error) + "（HTTP " + response.status + "）");
-        return;
+      item.appendChild(meta);
+      // url row
+      var urlRow=document.createElement("div");urlRow.className="file-url";
+      var link=document.createElement("a");link.href=file.url;link.target="_blank";link.rel="noopener";link.textContent=file.url;
+      var cpBtn=document.createElement("button");cpBtn.type="button";cpBtn.className="copy-btn";cpBtn.textContent="复制";
+      cpBtn.onclick=function(){copyUrl(file.url,cpBtn)};
+      urlRow.append(link,cpBtn);
+      item.appendChild(urlRow);
+      // admin actions
+      if(isAdmin){
+        var acts=document.createElement("div");acts.className="file-actions";
+        var upd=document.createElement("button");upd.type="button";upd.className="sm outline";upd.textContent="更新";
+        upd.onclick=function(){openUpload("local",file.key)};
+        var del=document.createElement("button");del.type="button";del.className="sm danger";del.textContent="删除";
+        del.onclick=function(){removeFile(file.key)};
+        acts.append(upd,del);item.appendChild(acts);
       }
-      setMessage("manualMessage", "保存成功：" + data.file.url, "success");
-      $("manualContentInput").value = "";
+      list.appendChild(item);
+    });
+  }
+
+  function render(){
+    renderBreadcrumb();
+    var d=getDisplayData();
+    $("listStatus").textContent=files.length+" 个文件"+(currentDir?" · "+currentDir:"");
+    renderFolders(d.folders);
+    renderFiles(d.files);
+  }
+
+  async function loadFiles(){
+    $("listStatus").textContent="加载中…";
+    try{
+      var r=await fetch(base+"/api/files",{cache:"no-store"});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      var data=await r.json();
+      files=data.files||[];
+    }catch(e){files=[]}
+    render();
+  }
+
+  // ---- upload modal ----
+  function openUpload(tab,prepath){
+    if(!isAdmin)return;
+    tab=tab||"local";
+    show("uploadModal",true);
+    $("uploadPathHint").textContent="当前路径："+(currentDir||"根目录");
+    // reset
+    setPickedFile(null);
+    $("pathInput").value=prepath||(currentDir?currentDir+"/":"");
+    $("proxyUrlInput").value="";
+    $("proxyKeyInput").value=currentDir?currentDir+"/":"";
+    $("manualKeyInput").value=currentDir?currentDir+"/":"";
+    $("manualContentInput").value="";
+    setMessage("uploadMessage","",0);setMessage("remoteMessage","",0);setMessage("manualMessage","",0);
+    switchTab(tab);
+  }
+  function closeUpload(){show("uploadModal",false)}
+
+  function switchTab(name){
+    ["local","remote","manual"].forEach(function(t){show("tab"+t.charAt(0).toUpperCase()+t.slice(1),t===name)});
+    var btns=document.querySelectorAll("#sourceTabs .tab");
+    for(var i=0;i<btns.length;i++)btns[i].classList.toggle("active",btns[i].getAttribute("data-tab")===name);
+  }
+
+  function setPickedFile(file){
+    pickedFile=file||null;
+    if(pickedFile){show("chosenFile",true);$("chosenFile").textContent=pickedFile.name+" ("+formatSize(pickedFile.size)+")";$("pathInput").value=pickedFile.name}
+    else{show("chosenFile",false)}
+  }
+
+  async function upload(){
+    var path=$("pathInput").value.trim();
+    var file=pickedFile;
+    if(!path)return setMessage("uploadMessage","请填写云端路径","error");
+    if(!file)return setMessage("uploadMessage","请先选择文件","error");
+    if(!isValidPath(path))return setMessage("uploadMessage","路径不合法","error");
+    if(file.size>1048576)return setMessage("uploadMessage","文件超过 1MB","error");
+    $("uploadBtn").disabled=true;
+    setMessage("uploadMessage","上传中…","status");
+    try{
+      var r=await fetch(base+"/"+encodeKey(path),{method:"POST",headers:Object.assign({},authHeaders(),{"content-type":"text/plain; charset=utf-8"}),body:await file.arrayBuffer()});
+      var d=await r.json().catch(function(){return{}});
+      if(!r.ok)return setMessage("uploadMessage",explainError(d.error)+" (HTTP "+r.status+")","error");
+      setMessage("uploadMessage","成功: "+d.file.url,"success");
+      setPickedFile(null);$("pathInput").value=currentDir?currentDir+"/":"";
       await loadFiles();
-    } catch (e) {
-      setMessage("manualMessage", "保存失败，请检查网络或重新验证 Token");
-    } finally {
-      $("manualBtn").disabled = false;
-    }
+    }catch(e){setMessage("uploadMessage","上传失败","error")}
+    finally{$("uploadBtn").disabled=false}
   }
 
-  async function removeFile(key) {
-    if (!confirm("确定删除“" + key + "”吗？")) return;
-    try {
-      var response = await fetch(base + "/" + encodeKey(key), {
-        method: "DELETE",
-        headers: authHeaders()
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) {
-        alert(explainError(data.error));
-        return;
-      }
+  async function proxyPull(){
+    var url=$("proxyUrlInput").value.trim();
+    var key=$("proxyKeyInput").value.trim();
+    if(!/^https?:\/\//i.test(url))return setMessage("remoteMessage","请输入 http/https 地址","error");
+    if(key&&!isValidPath(key))return setMessage("remoteMessage","路径不合法","error");
+    $("proxyBtn").disabled=true;
+    setMessage("remoteMessage","拉取中…","status");
+    try{
+      var r=await fetch(base+"/api/proxy",{method:"POST",headers:Object.assign({},authHeaders(),{"content-type":"application/json"}),body:JSON.stringify({url:url,key:key||undefined})});
+      var d=await r.json().catch(function(){return{}});
+      if(!r.ok)return setMessage("remoteMessage",explainError(d.error),"error");
+      setMessage("remoteMessage","成功: "+(d.file?d.file.url:""),"success");
       await loadFiles();
-    } catch (e) {
-      alert("删除失败，请检查网络");
-    }
+    }catch(e){setMessage("remoteMessage","拉取失败","error")}
+    finally{$("proxyBtn").disabled=false}
   }
 
-  function chooseUpdate(key) {
-    switchTab("local");
-    $("pathInput").value = key;
-    show("adminPanel", true);
-    setMessage("uploadMessage", "选择新文件后将覆盖：" + key, "status");
-    window.scrollTo({ top: $("adminPanel").offsetTop - 10, behavior: "smooth" });
+  async function manualSave(){
+    var key=$("manualKeyInput").value.trim();
+    var content=$("manualContentInput").value;
+    if(!key)return setMessage("manualMessage","请填写文件名","error");
+    if(!isValidPath(key))return setMessage("manualMessage","路径不合法","error");
+    $("manualBtn").disabled=true;
+    setMessage("manualMessage","保存中…","status");
+    try{
+      var r=await fetch(base+"/"+encodeKey(key),{method:"POST",headers:Object.assign({},authHeaders(),{"content-type":"text/plain; charset=utf-8","x-source":"manual"}),body:content});
+      var d=await r.json().catch(function(){return{}});
+      if(!r.ok)return setMessage("manualMessage",explainError(d.error),"error");
+      setMessage("manualMessage","成功: "+(d.file?d.file.url:""),"success");
+      $("manualContentInput").value="";
+      await loadFiles();
+    }catch(e){setMessage("manualMessage","保存失败","error")}
+    finally{$("manualBtn").disabled=false}
   }
 
-  function downloadBat() {
-    if (!token) { alert("请先验证 Token"); return; }
-    var batLines = [
-      "@echo off",
-      "chcp 65001 >nul",
-      "setlocal",
-      'set "BASE_URL=' + base + '"',
-      'set "TOKEN=' + token + '"',
-      "",
-      "echo ========================================",
-      "echo   云端文件通用上传脚本 (EdgeOne File Hub)",
-      "echo ========================================",
-      "echo.",
-      "",
-      'if not "%~1"=="" (',
-      '    set "FILE=%~1"',
-      ") else (",
-      '    set /p "FILE=将文件拖到此窗口后按回车："',
-      ")",
+  async function removeFile(key){
+    if(!confirm("确定删除 "+baseName(key)+" ？"))return;
+    try{
+      var r=await fetch(base+"/"+encodeKey(key),{method:"DELETE",headers:authHeaders()});
+      if(!r.ok){var d=await r.json().catch(function(){return{}});alert(explainError(d.error));return}
+      await loadFiles();
+    }catch(e){alert("删除失败")}
+  }
+
+  function downloadBat(){
+    var lines=[
+      "@echo off & chcp 65001 >nul & setlocal",
+      'echo   云端文件通用上传脚本 (EdgeOne File Hub)',
+      'set "BASE_URL='+base+'"',
+      'set "TOKEN='+token+'"',
+      'if "%~1"=="" (set /p "FILE=把文件拖到这里，或输入路径：") else (set "FILE=%~1")',
       'if "%FILE%"=="" (echo 未指定文件 & pause & exit /b 1)',
       'if not exist "%FILE%" (echo 文件不存在 & pause & exit /b 1)',
       "",
       'for %%%%i in ("%FILE%") do set "DEFAULT_NAME=%%%%~nxi"',
       'set "KEY=%DEFAULT_NAME%"',
-      'set /p "KEY=云端路径，可包含文件夹（回车默认 %DEFAULT_NAME%）："',
+      'set /p "KEY=云端路径（回车默认 %DEFAULT_NAME%）："',
       'if "%KEY%"=="" set "KEY=%DEFAULT_NAME%"',
       "",
       "echo 正在上传...",
       'curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" --data-binary "@%FILE%"',
       "echo.",
-      'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败，请检查 Token 或网络)',
-      "echo.",
-      "pause",
-      "endlocal"
+      'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败)',
+      "echo.", "pause", "endlocal"
     ].join("\r\n");
-    var link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([batLines], { type: "text/plain;charset=utf-8" }));
-    link.download = "upload.bat";
-    link.click();
-    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+    var link=document.createElement("a");link.href=URL.createObjectURL(new Blob([lines],{type:"text/plain;charset=utf-8"}));link.download="upload.bat";link.click();setTimeout(function(){URL.revokeObjectURL(link.href)},1000);
   }
 
-  // ---------- 登录 ----------
-  function openAuth() {
-    $("tokenInput").value = "";
-    $("authMessage").textContent = "";
-    show("modalBackdrop", true);
-    setTimeout(function () { $("tokenInput").focus(); }, 0);
-  }
-  function closeAuth() {
-    show("modalBackdrop", false);
-  }
-  function logout() {
-    token = "";
-    isAdmin = false;
-    pickedFile = null;
-    sessionStorage.removeItem("cloudsync_token");
-    show("adminPanel", false);
-    render();
-  }
-  async function checkToken(value) {
-    var response = await fetch(base + "/api/auth", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: value })
-    });
-    var data = await response.json().catch(function () { return {}; });
-    return { response: response, data: data };
-  }
-  async function verify() {
-    var value = $("tokenInput").value.trim();
-    if (!value) {
-      setMessage("authMessage", "请输入 Token");
-      return;
-    }
-    $("verifyBtn").disabled = true;
-    setMessage("authMessage", "验证中…", "status");
-    try {
-      var result = await checkToken(value);
-      if (!result.response.ok || !result.data.ok) {
-        setMessage("authMessage", explainError(result.data.error));
-        return;
-      }
-      token = value;
-      isAdmin = true;
-      sessionStorage.setItem("cloudsync_token", token);
-      closeAuth();
-      show("adminPanel", true);
-      render();
-      window.scrollTo({ top: $("adminPanel").offsetTop - 10, behavior: "smooth" });
-    } catch (e) {
-      setMessage("authMessage", "无法连接服务，请确认项目已经重新部署");
-    } finally {
-      $("verifyBtn").disabled = false;
-    }
-  }
-  async function validateStoredToken() {
-    if (!token) return;
-    try {
-      var result = await checkToken(token);
-      if (result.response.ok && result.data.ok) {
-        isAdmin = true;
-        show("adminPanel", true);
-        render();
-      } else {
-        logout();
-      }
-    } catch (e) {
-      logout();
-    }
+  // ---- auth ----
+  function openAuth(){$("tokenInput").value="";setMessage("authMessage","",0);show("authModal",true);setTimeout(function(){$("tokenInput").focus()},50)}
+  function closeAuth(){show("authModal",false)}
+  function logout(){token="";isAdmin=false;sessionStorage.removeItem("cloudsync_token");show("adminBar",false);show("fabBtn",false);render()}
+
+  async function checkToken(value){var r=await fetch(base+"/api/auth",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token:value})});var d=await r.json().catch(function(){return{}});return{response:r,data:d}}
+
+  async function verify(){
+    var v=$("tokenInput").value.trim();
+    if(!v)return setMessage("authMessage","请输入 Token","error");
+    $("verifyBtn").disabled=true;
+    setMessage("authMessage","验证中…","status");
+    try{
+      var result=await checkToken(v);
+      if(!result.response.ok||!result.data.ok)return setMessage("authMessage",explainError(result.data.error),"error");
+      token=v;isAdmin=true;sessionStorage.setItem("cloudsync_token",token);closeAuth();
+      show("adminBar",true);show("fabBtn",true);render();
+    }catch(e){setMessage("authMessage","无法连接","error")}
+    finally{$("verifyBtn").disabled=false}
   }
 
-  // ---------- 事件绑定 ----------
-  $("manageBtn").onclick = function () {
-    if (isAdmin) {
-      show("adminPanel", true);
-      window.scrollTo({ top: $("adminPanel").offsetTop - 10, behavior: "smooth" });
-    } else {
-      openAuth();
-    }
-  };
-  $("cancelBtn").onclick = closeAuth;
-  $("verifyBtn").onclick = verify;
-  $("tokenInput").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") verify();
-  });
-  $("refreshBtn").onclick = loadFiles;
-  $("uploadBtn").onclick = upload;
-  $("proxyBtn").onclick = proxyPull;
-  $("manualBtn").onclick = manualSave;
-  $("downloadBatBtn").onclick = downloadBat;
-  $("logoutBtn").onclick = logout;
-
-  $("proxyInput").addEventListener("input", updateProxy);
-  $("proxyInput").addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && proxyUrl) window.open(proxyUrl, "_blank");
-  });
-  $("proxyCopyBtn").onclick = function () { copyUrl(proxyUrl, $("proxyCopyBtn")); };
-  $("proxyOpenBtn").onclick = function () { if (proxyUrl) window.open(proxyUrl, "_blank"); };
-
-  var tabButtons = document.querySelectorAll("#sourceTabs .tab");
-  for (var i = 0; i < tabButtons.length; i++) {
-    tabButtons[i].onclick = function () { switchTab(this.getAttribute("data-tab")); };
+  async function validateStoredToken(){
+    if(!token)return;
+    try{var r=await checkToken(token);if(r.response.ok&&r.data.ok){isAdmin=true;show("adminBar",true);show("fabBtn",true);render()}else{logout()}}catch(e){logout()}
   }
 
-  $("dropZone").onclick = function () { $("fileInput").click(); };
-  $("dropZone").addEventListener("dragover", function (e) {
-    e.preventDefault();
-    this.classList.add("over");
-  });
-  $("dropZone").addEventListener("dragleave", function () {
-    this.classList.remove("over");
-  });
-  $("dropZone").addEventListener("drop", function (e) {
-    e.preventDefault();
-    this.classList.remove("over");
-    if (e.dataTransfer.files && e.dataTransfer.files.length) {
-      setPickedFile(e.dataTransfer.files[0]);
-    }
-  });
-  $("fileInput").onchange = function () {
-    setPickedFile($("fileInput").files[0]);
-  };
+  // ---- events ----
+  $("manageBtn").onclick=function(){if(isAdmin){show("adminBar",true);show("fabBtn",true)}else{openAuth()}};
+  $("cancelBtn").onclick=closeAuth;
+  $("verifyBtn").onclick=verify;
+  $("tokenInput").addEventListener("keydown",function(e){if(e.key==="Enter")verify()});
+
+  $("fabBtn").onclick=function(){openUpload("local")};
+  $("uploadCancelBtn").onclick=closeUpload;
+  $("uploadModal").onclick=function(e){if(e.target=== $("uploadModal"))closeUpload()};
+  $("authModal").onclick=function(e){if(e.target===$("authModal"))closeAuth()};
+
+  $("uploadBtn").onclick=upload;
+  $("proxyBtn").onclick=proxyPull;
+  $("manualBtn").onclick=manualSave;
+  $("downloadBatBtn").onclick=downloadBat;
+  $("logoutBtn").onclick=logout;
+
+  $("proxyInput").addEventListener("input",updateProxy);
+  $("proxyInput").addEventListener("keydown",function(e){if(e.key==="Enter"&&proxyUrl)window.open(proxyUrl,"_blank")});
+  $("proxyCopyBtn").onclick=function(){copyUrl(proxyUrl,$("proxyCopyBtn"))};
+  $("proxyOpenBtn").onclick=function(){if(proxyUrl)window.open(proxyUrl,"_blank")};
+
+  var tabBtns=document.querySelectorAll("#sourceTabs .tab");
+  for(var i=0;i<tabBtns.length;i++)tabBtns[i].onclick=function(){switchTab(this.getAttribute("data-tab"))};
+
+  $("dropZone").onclick=function(){$("fileInput").click()};
+  $("dropZone").addEventListener("dragover",function(e){e.preventDefault();this.classList.add("over")});
+  $("dropZone").addEventListener("dragleave",function(){this.classList.remove("over")});
+  $("dropZone").addEventListener("drop",function(e){e.preventDefault();this.classList.remove("over");if(e.dataTransfer.files&&e.dataTransfer.files.length)setPickedFile(e.dataTransfer.files[0])});
+  $("fileInput").onchange=function(){$("fileInput").files[0]&&setPickedFile($("fileInput").files[0])};
 
   loadFiles();
   validateStoredToken();
