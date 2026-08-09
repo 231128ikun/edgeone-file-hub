@@ -4,6 +4,8 @@ const STORE_NAME = "edgeone-sync";
 const META_PREFIX = "__meta/";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_KEY_LENGTH = 512;
+const MAX_REDIRECTS = 5;
+const PROXY_TIMEOUT_MS = 15000;
 
 export async function onRequestGet(context) {
   return run(async () => {
@@ -62,11 +64,19 @@ async function listFiles({ request, env }) {
       contentType: meta.contentType || "application/octet-stream",
       updatedAt: meta.updatedAt || null,
       source: meta.source || null,
+      sourceLabel: sourceLabelOf(meta),
       url: `${base}/${encodeKey(meta.key)}`,
     });
   }
   files.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
   return json({ files, count: files.length });
+}
+
+function sourceLabelOf(meta) {
+  const source = typeof meta?.source === "string" ? meta.source : "";
+  if (source === "manual") return "手动输入";
+  if (/^https?:\/\//i.test(source)) return "远程拉取";
+  return "本地上传";
 }
 
 async function readFile({ request }) {
@@ -103,10 +113,13 @@ async function writeFile({ request, env }) {
   const body = await request.arrayBuffer();
   if (body.byteLength > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
 
+  const sourceHeader = (request.headers.get("x-source") || "").trim().toLowerCase();
+  const source = sourceHeader === "manual" ? "manual" : null;
   const contentType = guessContentType(key);
   const requestUrl = new URL(request.url);
   const base = (env?.PUBLIC_BASE_URL || requestUrl.origin).replace(/\/+$/, "");
   const metadata = { key, size: body.byteLength, contentType, updatedAt: new Date().toISOString() };
+  if (source) metadata.source = source;
 
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   await store.set(key, body);
@@ -126,7 +139,7 @@ async function deleteFile({ request, env }) {
   return json({ ok: true, key });
 }
 
-// POST /api/proxy  { url, key? }  —— 拉取远程地址并保存为云端文件
+// POST /api/proxy  { url, key? } —— 拉取远程地址并保存为云端文件（需 Token）
 async function proxyPull({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
   let url = "", key = "";
@@ -137,20 +150,26 @@ async function proxyPull({ request, env }) {
   } catch {
     return json({ error: "invalid_request" }, 400);
   }
-  if (!/^https?:\/\//i.test(url)) return json({ error: "invalid_url" }, 400);
 
-  key = key || remoteBaseName(url);
+  const target = normalizeRemoteUrl(url);
+  if (!target) return json({ error: "invalid_url" }, 400);
+  if (isBlockedProxyTarget(target)) return json({ error: "blocked_url" }, 403);
+
+  key = key || remoteBaseName(target);
   const normalized = normalizeKey(key);
   if (!normalized || normalized.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
 
-  const remote = await fetchRemote(url);
-  if (!remote.ok) return json({ error: "remote_fetch_failed", status: remote.status }, 502);
-  if (remote.size > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
+  const remote = await fetchRemote(target);
+  if (!remote.ok) {
+    if (remote.status === 413) return json({ error: "file_too_large" }, 413);
+    if (remote.status === 403) return json({ error: "blocked_url" }, 403);
+    return json({ error: remote.error || "remote_fetch_failed", status: remote.status || 502 }, 502);
+  }
 
   const contentType = guessContentType(normalized);
   const requestUrl = new URL(request.url);
   const base = (env?.PUBLIC_BASE_URL || requestUrl.origin).replace(/\/+$/, "");
-  const metadata = { key: normalized, size: remote.size, contentType, updatedAt: new Date().toISOString(), source: url };
+  const metadata = { key: normalized, size: remote.size, contentType, updatedAt: new Date().toISOString(), source: target };
 
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   await store.set(normalized, remote.buffer);
@@ -159,17 +178,23 @@ async function proxyPull({ request, env }) {
   return json({ ok: true, file: { ...metadata, url: `${base}/${encodeKey(normalized)}` } });
 }
 
-// GET /api/proxy?url=...  —— 代理读取远程内容（需 Token）
+// GET /api/proxy?url=... —— 反代读取远程内容（不落盘）
+// 默认公开；环境变量 PUBLIC_PROXY=off 时改为需要 Token
 async function proxyRead({ request, env }) {
-  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
-  const url = new URL(request.url).searchParams.get("url") || "";
-  if (!/^https?:\/\//i.test(url)) return json({ error: "invalid_url" }, 400);
+  if (proxyRequiresToken(env) && !authorized(request, env)) return json({ error: "invalid_token" }, 401);
+  const raw = new URL(request.url).searchParams.get("url") || "";
+  const target = normalizeRemoteUrl(raw);
+  if (!target) return json({ error: "invalid_url" }, 400);
+  if (isBlockedProxyTarget(target)) return json({ error: "blocked_url" }, 403);
 
-  const remote = await fetchRemote(url);
-  if (!remote.ok) return json({ error: "remote_fetch_failed", status: remote.status }, 502);
+  const remote = await fetchRemote(target);
+  if (!remote.ok) {
+    if (remote.status === 413) return json({ error: "file_too_large" }, 413);
+    if (remote.status === 403) return json({ error: "blocked_url" }, 403);
+    return json({ error: remote.error || "remote_fetch_failed", status: remote.status || 502 }, 502);
+  }
 
-  const pathPart = url.split(/[?#]/)[0];
-  const contentType = remote.contentType || guessContentType(pathPart) || "application/octet-stream";
+  const contentType = remote.contentType || guessContentType(target) || "application/octet-stream";
   return new Response(remote.buffer, {
     headers: {
       "content-type": contentType,
@@ -180,18 +205,98 @@ async function proxyRead({ request, env }) {
   });
 }
 
+function proxyRequiresToken(env) {
+  const value = String(env?.PUBLIC_PROXY || "").trim().toLowerCase();
+  if (!value) return false;
+  return !(value === "on" || value === "true" || value === "1" || value === "yes" || value === "public");
+}
+
+// 抓取远端内容：跟随重定向（每跳都做安全检查），内容最大 1MB
 async function fetchRemote(url) {
+  let current = url;
   try {
-    const res = await fetch(url, { redirect: "follow" });
-    if (!res.ok) return { ok: false, status: res.status };
-    const declared = Number(res.headers.get("content-length") || 0);
-    if (declared > MAX_BODY_BYTES) return { ok: false, status: 413 };
-    const buffer = await res.arrayBuffer();
-    if (buffer.byteLength > MAX_BODY_BYTES) return { ok: false, status: 413 };
-    return { ok: true, buffer, size: buffer.byteLength, contentType: res.headers.get("content-type") || "" };
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const res = await fetchWithTimeout(current);
+      const status = res.status;
+      if (status === 301 || status === 302 || status === 303 || status === 307 || status === 308) {
+        const location = res.headers.get("location");
+        if (!location) return { ok: false, status: 502, error: "remote_fetch_failed" };
+        const next = new URL(location, current).toString();
+        if (isBlockedProxyTarget(next)) return { ok: false, status: 403, error: "blocked_url" };
+        current = next;
+        continue;
+      }
+      if (!res.ok) return { ok: false, status: res.status, error: "remote_fetch_failed" };
+      const declared = Number(res.headers.get("content-length") || 0);
+      if (declared > MAX_BODY_BYTES) return { ok: false, status: 413, error: "file_too_large" };
+      const buffer = await res.arrayBuffer();
+      if (buffer.byteLength > MAX_BODY_BYTES) return { ok: false, status: 413, error: "file_too_large" };
+      return { ok: true, buffer, size: buffer.byteLength, contentType: res.headers.get("content-type") || "" };
+    }
+    return { ok: false, status: 502, error: "too_many_redirects" };
   } catch {
-    return { ok: false, status: 0 };
+    return { ok: false, status: 502, error: "remote_fetch_failed" };
   }
+}
+
+async function fetchWithTimeout(url) {
+  const init = { redirect: "manual" };
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    init.signal = AbortSignal.timeout(PROXY_TIMEOUT_MS);
+  }
+  return fetch(url, init);
+}
+
+function normalizeRemoteUrl(raw) {
+  let value = String(raw || "").trim();
+  if (!value) return null;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) value = "https://" + value;
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return parsed.toString();
+}
+
+// 禁止把本站当跳板访问内网 / 本机地址
+function isBlockedProxyTarget(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.username || parsed.password) return true;
+    const host = parsed.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    if (!host) return true;
+    if (host === "localhost" || host.endsWith(".localhost")) return true;
+    if (host.endsWith(".local") || host.endsWith(".lan") || host.endsWith(".internal") || host.endsWith(".home.arpa")) return true;
+    if (host.includes(":")) return isPrivateIpv6(host);
+    if (/^[\d.]+$/.test(host)) return isPrivateIpv4(host);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function isPrivateIpv4(ip) {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return true;
+  const a = parts[0], b = parts[1];
+  if (a === 0 || a === 10 || a === 127) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  if (a === 169 && b === 254) return true; // link-local（含云元数据地址）
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking
+  if (a >= 224) return true; // 组播 / 保留
+  return false;
+}
+
+function isPrivateIpv6(host) {
+  const lower = host.toLowerCase();
+  if (lower === "::" || lower === "::1" || lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) return true;
+  const mapped = lower.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  return mapped ? isPrivateIpv4(mapped[1]) : false;
 }
 
 function remoteBaseName(url) {
@@ -230,7 +335,11 @@ function getKey(requestUrl) {
 function normalizeKey(raw) {
   if (!raw || raw.length > MAX_KEY_LENGTH) return null;
   let key;
-  try { key = decodeURIComponent(raw); } catch { return null; }
+  try {
+    key = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
   if (!key || key.includes("\\") || key.includes("\0")) return null;
   if (/(^|\/)\.\.?($|\/)/.test(key)) return null;
   if ([...key].some((char) => char.charCodeAt(0) < 32)) return null;
@@ -260,7 +369,11 @@ function sameSecret(left, right) {
 }
 
 async function run(handler) {
-  try { return await handler(); } catch { return json({ error: "server_error" }, 500); }
+  try {
+    return await handler();
+  } catch {
+    return json({ error: "server_error" }, 500);
+  }
 }
 
 function json(value, status = 200) {
@@ -279,6 +392,6 @@ function corsHeaders() {
   return {
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "access-control-allow-headers": "content-type, x-token, authorization",
+    "access-control-allow-headers": "content-type, x-token, x-source, authorization",
   };
 }
