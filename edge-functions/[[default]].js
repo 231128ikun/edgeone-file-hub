@@ -26,11 +26,19 @@ export async function onRequestPost(context) {
 }
 
 export async function onRequestPut(context) {
-  return run(() => writeFile(context));
+  return run(async () => {
+    const pathname = new URL(context.request.url).pathname;
+    if (pathname === "/api/notes") return saveNote(context);
+    return writeFile(context);
+  });
 }
 
 export async function onRequestDelete(context) {
-  return run(() => deleteFile(context));
+  return run(async () => {
+    const pathname = new URL(context.request.url).pathname;
+    if (pathname === "/api/notes") return deleteNote(context);
+    return deleteFile(context);
+  });
 }
 
 export async function onRequestOptions() {
@@ -65,6 +73,7 @@ async function listFiles({ request, env }) {
       updatedAt: meta.updatedAt || null,
       source: meta.source || null,
       sourceLabel: sourceLabelOf(meta),
+      note: typeof meta.note === "string" ? meta.note : "",
       url: `${base}/${encodeKey(meta.key)}`,
     });
   }
@@ -113,8 +122,10 @@ async function writeFile({ request, env }) {
   const body = await request.arrayBuffer();
   if (body.byteLength > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
 
-  const sourceHeader = (request.headers.get("x-source") || "").trim().toLowerCase();
-  const source = sourceHeader === "manual" ? "manual" : null;
+  const sourceHeader = (request.headers.get("x-source") || "").trim();
+  let source = null;
+  if (sourceHeader === "manual") source = "manual";
+  else if (/^https?:\/\//i.test(sourceHeader)) source = sourceHeader;
   const contentType = guessContentType(key);
   const requestUrl = new URL(request.url);
   const base = (env?.PUBLIC_BASE_URL || requestUrl.origin).replace(/\/+$/, "");
@@ -122,6 +133,8 @@ async function writeFile({ request, env }) {
   if (source) metadata.source = source;
 
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const oldMeta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
+  preserveNote(oldMeta, metadata);
   await store.set(key, body);
   await store.setJSON(META_PREFIX + key, metadata);
 
@@ -172,6 +185,8 @@ async function proxyPull({ request, env }) {
   const metadata = { key: normalized, size: remote.size, contentType, updatedAt: new Date().toISOString(), source: target };
 
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const oldMeta = await store.get(META_PREFIX + normalized, { type: "json", consistency: "strong" });
+  preserveNote(oldMeta, metadata);
   await store.set(normalized, remote.buffer);
   await store.setJSON(META_PREFIX + normalized, metadata);
 
@@ -203,6 +218,57 @@ async function proxyRead({ request, env }) {
       ...corsHeaders(),
     },
   });
+}
+
+// PUT /api/notes?key=... —— 保存 / 清除文件备注（需 Token；备注随元数据持久化，访客只读）
+async function saveNote({ request, env }) {
+  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
+  const key = normalizeKey(new URL(request.url).searchParams.get("key") || "");
+  if (!key || key.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+  let content = "";
+  try {
+    const body = await request.json();
+    content = typeof body?.content === "string" ? body.content.trim() : "";
+  } catch {
+    return json({ error: "invalid_request" }, 400);
+  }
+  if (content.length > 2000) return json({ error: "note_too_long" }, 413);
+
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const meta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
+  if (!meta || typeof meta.key !== "string") return json({ error: "file_not_found" }, 404);
+
+  if (!content) {
+    delete meta.note;
+    delete meta.noteUpdatedAt;
+  } else {
+    meta.note = content;
+    meta.noteUpdatedAt = new Date().toISOString();
+  }
+  await store.setJSON(META_PREFIX + key, meta);
+  return json({ ok: true, note: content ? { key, content, updatedAt: meta.noteUpdatedAt } : null });
+}
+
+// DELETE /api/notes?key=... —— 清除文件备注（需 Token）
+async function deleteNote({ request, env }) {
+  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
+  const key = normalizeKey(new URL(request.url).searchParams.get("key") || "");
+  if (!key || key.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const meta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
+  if (meta && typeof meta.key === "string") {
+    delete meta.note;
+    delete meta.noteUpdatedAt;
+    await store.setJSON(META_PREFIX + key, meta);
+  }
+  return json({ ok: true });
+}
+
+// 覆盖写入 / 远程刷新时保留原备注，避免误删
+function preserveNote(oldMeta, metadata) {
+  if (!oldMeta) return;
+  if (typeof oldMeta.note === "string") metadata.note = oldMeta.note;
+  if (typeof oldMeta.noteUpdatedAt === "string") metadata.noteUpdatedAt = oldMeta.noteUpdatedAt;
 }
 
 function proxyRequiresToken(env) {
