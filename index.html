@@ -1,311 +1,656 @@
-$("downloadBatBtn").onclick = downloadBat;
 <!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>云端文件</title>
+<title>云端文件 · EdgeOne File Hub</title>
 <style>
-:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:#1f2937;background:#f6f7f9}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e7eb}header .wrap,main{max-width:960px;margin:auto;padding-left:20px;padding-right:20px}.top{height:66px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:20px;font-weight:700}.sub{color:#6b7280;font-size:13px;margin-top:2px}.manage-link{border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:8px 13px;color:#374151;cursor:pointer}.manage-link:hover{background:#f3f4f6}main{padding-top:28px;padding-bottom:48px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px}.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.panel-title h1,.panel-title h2{margin:0;font-size:18px}.muted{color:#6b7280;font-size:14px}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:8px;padding:9px 14px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px}button:hover{filter:brightness(1.05)}button.secondary{background:#eef2ff;color:#1d4ed8}button.danger{background:#fef2f2;color:#b91c1c}button:disabled{opacity:.55;cursor:not-allowed}input[type=text],input[type=password]{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none}input:focus{border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}.form-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.upload-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:10px;align-items:center}.field label{display:block;color:#6b7280;font-size:13px;margin-bottom:5px}.file-input{width:100%;font-size:14px}.hint{font-size:13px;color:#6b7280;margin:10px 0 0}.error{color:#b91c1c;font-size:14px;margin-top:10px}.success{color:#15803d;font-size:14px;margin-top:10px}.hidden{display:none!important}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:12px 10px;border-bottom:1px solid #edf0f2;text-align:left;vertical-align:middle}th{color:#6b7280;font-size:13px;font-weight:600;white-space:nowrap}td:first-child{font-weight:600;min-width:180px}.url{display:block;max-width:270px;color:#2563eb;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.url:hover{text-decoration:underline}.empty{text-align:center;padding:34px 10px;color:#6b7280}.status{font-size:13px;color:#6b7280}.admin-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.admin-head h2{margin:0;font-size:17px}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.file-actions{display:flex;gap:6px;flex-wrap:wrap}.file-actions button{padding:6px 9px;font-size:12px}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{width:min(430px,100%);background:#fff;border-radius:12px;padding:22px;box-shadow:0 18px 45px rgba(0,0,0,.2)}.modal h2{margin:0 0 8px;font-size:18px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}@media(max-width:700px){.upload-row,.admin-grid,.form-row{grid-template-columns:1fr}.top{height:auto;padding-top:15px;padding-bottom:15px;align-items:flex-start}.manage-link{margin-top:2px}th:nth-child(2),td:nth-child(2){display:none}.url{max-width:180px}}
+:root{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#1f2937;background:#f6f7f9}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#fff;border-bottom:1px solid #e5e7eb}
+.wrap,main{max-width:960px;margin:auto;padding-left:20px;padding-right:20px}
+.top{height:64px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:20px;font-weight:700}
+.sub{color:#6b7280;font-size:13px;margin-top:2px}
+main{padding-top:24px;padding-bottom:40px}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px}
+.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.panel-title h1{margin:0;font-size:19px}
+h2{margin:0;font-size:17px}
+h3{margin:0 0 12px;font-size:15px;color:#374151}
+.muted{color:#6b7280;font-size:13px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font-family:inherit;border:0;border-radius:8px;padding:9px 14px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px}
+button:hover{filter:brightness(1.06)}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.secondary{background:#eef2ff;color:#1d4ed8}
+button.danger{background:#fef2f2;color:#b91c1c}
+button.copy-btn{background:#f3f4f6;color:#374151;padding:5px 11px;font-size:12px;flex:none}
+button.copy-btn.done{background:#dcfce7;color:#15803d}
+.manage-link{background:#fff;border:1px solid #d1d5db;color:#374151}
+input[type=text],input[type=password]{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit}
+input:focus{border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}
+.field{margin-bottom:12px}
+.field label{display:block;color:#6b7280;font-size:13px;margin-bottom:5px}
+.file-input{width:100%;font-size:14px;padding:8px 0}
+.message{margin-top:10px;font-size:14px}
+.message.error{color:#b91c1c}
+.message.success{color:#15803d;word-break:break-all}
+.message.status{color:#6b7280}
+.hidden{display:none!important}
+.folder-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px;border-radius:999px}
+.chip.active{background:#2563eb;color:#fff}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:11px 10px;border-bottom:1px solid #edf0f2;text-align:left;vertical-align:middle}
+th{color:#6b7280;font-size:13px;font-weight:600;white-space:nowrap}
+.file-name{font-weight:600;word-break:break-all}
+.file-folder{color:#9ca3af;font-size:12px;margin-top:3px;word-break:break-all}
+.source{color:#9ca3af;font-size:12px;margin-top:3px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.urlbox{display:flex;align-items:center;gap:8px;max-width:360px}
+.url{display:block;color:#2563eb;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px;vertical-align:middle}
+.url:hover{text-decoration:underline}
+.file-actions{display:flex;gap:6px;flex-wrap:wrap}
+.file-actions button{padding:6px 10px;font-size:12px}
+.empty{text-align:center;padding:34px 10px;color:#6b7280}
+.admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.admin-card{border:1px solid #edf0f2;border-radius:10px;padding:16px}
+.admin-card .actions{margin-top:8px}
+.help{margin-top:14px;font-size:13px;color:#6b7280;border:1px dashed #e5e7eb;border-radius:10px;padding:12px 14px}
+.help summary{cursor:pointer;font-weight:600;color:#374151}
+.help ol{margin:8px 0 0;padding-left:20px;line-height:1.9}
+footer{color:#9ca3af;font-size:12px;text-align:center;padding:10px 20px 30px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal{width:min(430px,100%);background:#fff;border-radius:12px;padding:22px;box-shadow:0 18px 45px rgba(0,0,0,.2)}
+.modal h2{margin:0 0 6px;font-size:18px}
+.modal .muted{margin:0 0 14px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+@media(max-width:700px){.admin-grid{grid-template-columns:1fr}.top{height:auto;padding-top:14px;padding-bottom:14px;align-items:flex-start}.urlbox{max-width:210px}.url{max-width:120px}.file-folder,.source{max-width:180px}}
 </style>
 </head>
 <body>
-<header><div class="wrap top"><div><div class="brand">云端文件</div><div class="sub">公开读取 · 管理员上传和更新</div></div><button class="manage-link" id="manageBtn">管理</button></div></header>
+<header>
+  <div class="wrap top">
+    <div>
+      <div class="brand">云端文件</div>
+      <div class="sub">EdgeOne File Hub · 公开读取 · 管理员上传和更新</div>
+    </div>
+    <button class="manage-link" id="manageBtn">管理</button>
+  </div>
+</header>
 <main>
-<section class="panel"><div class="panel-title"><h1>文件列表</h1><div class="actions"><span class="status" id="listStatus">正在加载…</span><button class="secondary" id="refreshBtn">刷新</button></div></div><div class="table-wrap"><table><thead><tr><th>文件</th><th>大小</th><th>上传时间</th><th>公开地址</th><th id="actionHead" class="hidden">操作</th></tr></thead><tbody id="fileRows"></tbody></table><div id="empty" class="empty hidden">暂时没有上传文件。</div></div></section>
-<section id="adminPanel" class="panel hidden"><div class="admin-head"><h2>管理文件</h2><button class="secondary" id="downloadBatBtn">上传脚本</button><button class="secondary" id="logoutBtn">退出管理</button></div><div class="admin-grid"><div class="field"><label for="pathInput">云端文件名</label><input id="pathInput" type="text" placeholder="例如：docs/example.txt"></div><div class="field"><label for="fileInput">选择本地文件</label><input id="fileInput" class="file-input" type="file"></div></div><div class="actions" style="margin-top:14px"><button id="uploadBtn">上传 / 更新</button><span class="status">单个文件最大 1MB</span></div><div id="uploadMessage"></div></section>
+  <section class="panel">
+    <div class="panel-title">
+      <h1>文件列表</h1>
+      <div class="actions">
+        <span class="status muted" id="listStatus">正在加载…</span>
+        <button class="secondary" id="refreshBtn">刷新</button>
+      </div>
+    </div>
+    <div id="folderBar" class="folder-bar hidden">
+      <span class="muted">文件夹：</span>
+      <div id="folderChips" class="chips"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>文件</th>
+            <th>大小</th>
+            <th>更新时间</th>
+            <th>公开地址</th>
+            <th id="actionHead" class="hidden">操作</th>
+          </tr>
+        </thead>
+        <tbody id="fileRows"></tbody>
+      </table>
+      <div id="empty" class="empty hidden">暂时没有上传文件。</div>
+    </div>
+  </section>
+
+  <section id="adminPanel" class="panel hidden">
+    <div class="admin-head">
+      <h2>管理文件</h2>
+      <div class="actions">
+        <button class="secondary" id="downloadBatBtn">下载通用上传脚本 (.bat)</button>
+        <button class="secondary" id="logoutBtn">退出管理</button>
+      </div>
+    </div>
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h3>上传 / 更新本地文件</h3>
+        <div class="field">
+          <label for="pathInput">云端路径（支持文件夹，如 docs/example.txt）</label>
+          <input id="pathInput" type="text" placeholder="例如：docs/example.txt">
+        </div>
+        <div class="field">
+          <label for="fileInput">选择本地文件</label>
+          <input id="fileInput" class="file-input" type="file">
+        </div>
+        <div class="actions">
+          <button id="uploadBtn">上传 / 更新</button>
+        </div>
+        <div id="uploadMessage" class="message"></div>
+      </div>
+      <div class="admin-card">
+        <h3>从远程地址拉取</h3>
+        <div class="field">
+          <label for="proxyUrlInput">远程 URL（http/https，内容 ≤ 1MB）</label>
+          <input id="proxyUrlInput" type="text" placeholder="https://example.com/url.txt" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="proxyKeyInput">保存为云端路径（留空则自动取远程文件名）</label>
+          <input id="proxyKeyInput" type="text" placeholder="例如：remote/url.txt" spellcheck="false">
+        </div>
+        <div class="actions">
+          <button id="proxyBtn">拉取并保存</button>
+        </div>
+        <div id="proxyMessage" class="message"></div>
+      </div>
+    </div>
+    <details class="help">
+      <summary>使用说明</summary>
+      <ol>
+        <li><b>上传/更新</b>：填写云端路径（可含文件夹，如 <code>docs/example.txt</code>），选择本地文件后点击“上传 / 更新”；同名路径会直接覆盖旧文件。</li>
+        <li><b>远程拉取</b>：粘贴远程 http/https 地址，可指定保存路径，点击“拉取并保存”即可把远程内容存成云端文件（例如远程的 url.txt）。</li>
+        <li><b>上传脚本</b>：下载一个通用 <code>upload.bat</code>，把文件拖到脚本上即可上传，适合不用网页的时候批量更新。</li>
+        <li><b>文件夹</b>：云端路径里的 <code>/</code> 就是文件夹，主页顶部可以按文件夹筛选查看。</li>
+        <li>任意文件的“复制”按钮可以直接复制公开链接，发给别人即可读取。</li>
+      </ol>
+    </details>
+  </section>
+
+  <footer>EdgeOne File Hub · 基于 EdgeOne Makers Blob 存储 · 单文件最大 1MB</footer>
 </main>
-<div id="modalBackdrop" class="modal-backdrop hidden"><div class="modal"><h2>进入管理</h2><p class="muted">请输入 EdgeOne 环境变量中的 WRITE_TOKEN。</p><input id="tokenInput" type="password" autocomplete="off" placeholder="WRITE_TOKEN"><div id="authMessage"></div><div class="modal-actions"><button class="secondary" id="cancelAuth">取消</button><button id="verifyBtn">验证</button></div></div></div>
-<script>const $ = (id) => document.getElementById(id);
-const base = location.origin;
-let token = sessionStorage.getItem("cloudsync_token") || "";
-let isAdmin = false;
-let files = [];
 
-function show(id, visible = true) {
-  $(id).classList.toggle("hidden", !visible);
-}
+<div id="modalBackdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>管理员验证</h2>
+    <p class="muted">请输入部署时在环境变量中设置的 WRITE_TOKEN。</p>
+    <input id="tokenInput" type="password" placeholder="WRITE_TOKEN" autocomplete="off">
+    <div id="authMessage" class="message"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="cancelBtn">取消</button>
+      <button id="verifyBtn">验证</button>
+    </div>
+  </div>
+</div>
 
-function setMessage(id, text, type = "error") {
-  const element = $(id);
-  element.className = type;
-  element.textContent = text;
-}
+<script>
+(function () {
+  "use strict";
 
-function encodeKey(key) {
-  return key.split("/").map((part) => encodeURIComponent(part)).join("/");
-}
-
-function formatSize(value) {
-  const size = Number(value) || 0;
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(2)} MB`;
-}
-
-function formatTime(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString();
-}
-
-function authHeaders() {
-  return token ? { Authorization: "Bearer " + token } : {};
-}
-
-function explainError(code) {
-  return {
-    invalid_token: "Token 不正确或已失效",
-    server_token_not_configured: "服务端还没有设置 WRITE_TOKEN",
-    file_too_large: "文件超过 1MB",
-    invalid_key: "文件名不符合要求",
-    reserved_key: "这个文件名不能使用",
-    server_error: "服务端发生错误，请确认已重新部署并稍后重试",
-  }[code] || code || "操作失败";
-}
-
-async function loadFiles() {
-  $("listStatus").textContent = "正在加载…";
-  try {
-    const response = await fetch(`${base}/api/files`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    files = data.files || [];
-    renderFiles();
-    $("listStatus").textContent = `${files.length} 个文件`;
-  } catch {
-    files = [];
-    renderFiles();
-    $("listStatus").textContent = "加载失败";
-    $("empty").textContent = "文件列表加载失败，请刷新重试。";
+  var base = location.origin;
+  function $(id) { return document.getElementById(id); }
+  function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
+  function setMessage(id, text, type) {
+    var el = $(id);
+    el.textContent = text || "";
+    el.className = type || "";
   }
-}
 
-function appendTextCell(row, value, className = "") {
-  const cell = document.createElement("td");
-  cell.textContent = value == null ? "" : String(value);
-  if (className) cell.className = className;
-  row.appendChild(cell);
-  return cell;
-}
+  var files = [];
+  var token = sessionStorage.getItem("cloudsync_token") || "";
+  var isAdmin = false;
+  var currentFolder = "";
 
-function renderFiles() {
-  const body = $("fileRows");
-  body.replaceChildren();
-  show("empty", files.length === 0);
-  show("actionHead", isAdmin);
-  if (!files.length) return;
+  function encodeKey(key) {
+    return key.split("/").map(encodeURIComponent).join("/");
+  }
+  function folderOf(key) {
+    var i = key.lastIndexOf("/");
+    return i < 0 ? "" : key.slice(0, i);
+  }
+  function baseName(key) {
+    var i = key.lastIndexOf("/");
+    return i < 0 ? key : key.slice(i + 1);
+  }
+  function formatSize(value) {
+    var size = Number(value) || 0;
+    if (size < 1024) return size + " B";
+    if (size < 1048576) return (size / 1024).toFixed(1) + " KB";
+    return (size / 1048576).toFixed(2) + " MB";
+  }
+  function formatTime(value) {
+    var d = new Date(value);
+    return isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  }
+  function authHeaders() {
+    return token ? { Authorization: "Bearer " + token } : {};
+  }
+  function isValidPath(path) {
+    if (!path || path.length > 500) return false;
+    if (path.indexOf("..") !== -1 || path.indexOf("\\") !== -1) return false;
+    if (path.charAt(0) === "/") return false;
+    if (path.indexOf("__meta/") === 0) return false;
+    if (/[:\*?"<>|]/.test(path)) return false;
+    if (/[\u0000-\u001f]/.test(path)) return false;
+    return true;
+  }
+  function explainError(code) {
+    var map = {
+      invalid_token: "Token 不正确或已失效",
+      server_token_not_configured: "服务端还没有设置 WRITE_TOKEN，请先在环境变量中添加并重新部署",
+      file_too_large: "内容超过 1MB，平台限制",
+      invalid_key: "云端路径不符合要求",
+      reserved_key: "这个路径不能使用",
+      invalid_url: "远程地址无效，只支持 http/https",
+      remote_fetch_failed: "远程地址拉取失败",
+      server_error: "服务端发生错误，请确认已重新部署"
+    };
+    return map[code] || code || "操作失败";
+  }
 
-  for (const file of files) {
-    const row = document.createElement("tr");
-    appendTextCell(row, file.key);
-    appendTextCell(row, formatSize(file.size));
-    appendTextCell(row, formatTime(file.updatedAt));
+  function listFolders() {
+    var set = new Set();
+    files.forEach(function (f) {
+      var d = folderOf(f.key);
+      if (d) set.add(d);
+    });
+    return Array.from(set).sort();
+  }
 
-    const urlCell = document.createElement("td");
-    const link = document.createElement("a");
-    link.className = "url";
-    link.href = file.url;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = file.url;
-    urlCell.appendChild(link);
-    row.appendChild(urlCell);
+  function render() {
+    renderFolderBar();
+    renderRows();
+  }
 
-    if (isAdmin) {
-      const actionCell = document.createElement("td");
-      const actionBox = document.createElement("div");
-      actionBox.className = "file-actions";
-
-      const updateButton = document.createElement("button");
-      updateButton.className = "secondary";
-      updateButton.textContent = "更新";
-      updateButton.onclick = () => chooseUpdate(file.key);
-
-      
-      const deleteButton = document.createElement("button");
-      deleteButton.className = "danger";
-      deleteButton.textContent = "删除";
-      deleteButton.onclick = () => removeFile(file.key);
-
-      actionBox.append(updateButton, deleteButton);
-      actionCell.appendChild(actionBox);
-      row.appendChild(actionCell);
+  function renderFolderBar() {
+    var folders = listFolders();
+    show("folderBar", folders.length > 0);
+    var chips = $("folderChips");
+    chips.replaceChildren();
+    function addChip(label, value) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (currentFolder === value ? " active" : "");
+      b.textContent = label;
+      b.onclick = function () {
+        currentFolder = value;
+        render();
+      };
+      chips.appendChild(b);
     }
-    body.appendChild(row);
-  }
-}
-
-function openAuth() {
-  $("tokenInput").value = "";
-  $("authMessage").textContent = "";
-  show("modalBackdrop");
-  setTimeout(() => $("tokenInput").focus(), 0);
-}
-
-function closeAuth() {
-  show("modalBackdrop", false);
-}
-
-async function checkToken(value) {
-  const response = await fetch(`${base}/api/auth`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token: value }),
-  });
-  const data = await response.json().catch(() => ({}));
-  return { response, data };
-}
-
-async function verify() {
-  const value = $("tokenInput").value.trim();
-  if (!value) {
-    setMessage("authMessage", "请输入 Token");
-    return;
+    addChip("全部文件", "");
+    folders.forEach(function (d) { addChip(d, d); });
   }
 
-  $("verifyBtn").disabled = true;
-  $("authMessage").textContent = "验证中…";
-  try {
-    const { response, data } = await checkToken(value);
-    if (!response.ok || !data.ok) {
-      setMessage("authMessage", explainError(data.error));
+  function renderRows() {
+    var body = $("fileRows");
+    body.replaceChildren();
+    show("actionHead", isAdmin);
+
+    if (!files.length) {
+      show("empty", true);
+      $("empty").textContent = "暂时没有上传文件。";
+      $("listStatus").textContent = "0 个文件";
       return;
     }
-    token = value;
-    isAdmin = true;
-    sessionStorage.setItem("cloudsync_token", token);
-    closeAuth();
-    show("adminPanel");
-    renderFiles();
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  } catch {
-    setMessage("authMessage", "无法连接服务，请确认项目已经重新部署");
-  } finally {
-    $("verifyBtn").disabled = false;
-  }
-}
 
-async function validateStoredToken() {
-  if (!token) return;
-  try {
-    const { response, data } = await checkToken(token);
-    if (response.ok && data.ok) {
-      isAdmin = true;
-      show("adminPanel");
-      renderFiles();
-    } else {
-      token = "";
-      isAdmin = false;
-      sessionStorage.removeItem("cloudsync_token");
-      renderFiles();
+    var visible = currentFolder
+      ? files.filter(function (f) { return folderOf(f.key) === currentFolder; })
+      : files;
+
+    $("listStatus").textContent = visible.length + " / " + files.length + " 个文件" +
+      (currentFolder ? "（" + currentFolder + "）" : "");
+
+    if (!visible.length) {
+      show("empty", true);
+      $("empty").textContent = "该文件夹下暂无文件。";
+      return;
     }
-  } catch {
+    show("empty", false);
+
+    visible.forEach(function (file) {
+      var row = document.createElement("tr");
+
+      var nameCell = document.createElement("td");
+      var nameDiv = document.createElement("div");
+      nameDiv.className = "file-name";
+      nameDiv.textContent = baseName(file.key);
+      nameCell.appendChild(nameDiv);
+      if (!currentFolder) {
+        var folderDiv = document.createElement("div");
+        folderDiv.className = "file-folder";
+        folderDiv.textContent = folderOf(file.key) ? folderOf(file.key) + "/" : "根目录 /";
+        nameCell.appendChild(folderDiv);
+      }
+      if (file.source) {
+        var srcDiv = document.createElement("div");
+        srcDiv.className = "source";
+        srcDiv.title = file.source;
+        srcDiv.textContent = "来源: " + file.source;
+        nameCell.appendChild(srcDiv);
+      }
+      row.appendChild(nameCell);
+
+      var sizeCell = document.createElement("td");
+      sizeCell.className = "muted";
+      sizeCell.textContent = formatSize(file.size);
+      row.appendChild(sizeCell);
+
+      var timeCell = document.createElement("td");
+      timeCell.className = "muted";
+      timeCell.textContent = formatTime(file.updatedAt);
+      row.appendChild(timeCell);
+
+      var urlCell = document.createElement("td");
+      var urlBox = document.createElement("div");
+      urlBox.className = "urlbox";
+      var link = document.createElement("a");
+      link.className = "url";
+      link.href = file.url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = file.url;
+      var copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "copy-btn";
+      copyBtn.textContent = "复制";
+      copyBtn.onclick = function () { copyUrl(file.url, copyBtn); };
+      urlBox.append(link, copyBtn);
+      urlCell.appendChild(urlBox);
+      row.appendChild(urlCell);
+
+      if (isAdmin) {
+        var actionCell = document.createElement("td");
+        var actionBox = document.createElement("div");
+        actionBox.className = "file-actions";
+        var updateBtn = document.createElement("button");
+        updateBtn.type = "button";
+        updateBtn.className = "secondary";
+        updateBtn.textContent = "更新";
+        updateBtn.onclick = function () { chooseUpdate(file.key); };
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "danger";
+        delBtn.textContent = "删除";
+        delBtn.onclick = function () { removeFile(file.key); };
+        actionBox.append(updateBtn, delBtn);
+        actionCell.appendChild(actionBox);
+        row.appendChild(actionCell);
+      }
+
+      body.appendChild(row);
+    });
+  }
+
+  function copyUrl(url, btn) {
+    function done() {
+      btn.classList.add("done");
+      btn.textContent = "已复制";
+      setTimeout(function () {
+        btn.classList.remove("done");
+        btn.textContent = "复制";
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () {
+        fallbackCopy(url);
+        done();
+      });
+    } else {
+      fallbackCopy(url);
+      done();
+    }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-100px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+  }
+
+  async function loadFiles() {
+    $("listStatus").textContent = "正在加载…";
+    try {
+      var response = await fetch(base + "/api/files", { cache: "no-store" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      var data = await response.json();
+      files = data.files || [];
+      render();
+    } catch (e) {
+      files = [];
+      render();
+      $("listStatus").textContent = "加载失败";
+      $("empty").textContent = "文件列表加载失败，请刷新重试。";
+    }
+  }
+
+  function openAuth() {
+    $("tokenInput").value = "";
+    $("authMessage").textContent = "";
+    show("modalBackdrop", true);
+    setTimeout(function () { $("tokenInput").focus(); }, 0);
+  }
+  function closeAuth() {
+    show("modalBackdrop", false);
+  }
+  function logout() {
     token = "";
     isAdmin = false;
     sessionStorage.removeItem("cloudsync_token");
-    renderFiles();
+    show("adminPanel", false);
+    render();
   }
-}
-
-function chooseUpdate(key) {
-  $("pathInput").value = key;
-  show("adminPanel");
-  $("fileInput").click();
-}
-
-async function upload() {
-  const path = $("pathInput").value.trim();
-  const file = $("fileInput").files[0];
-  if (!path) return setMessage("uploadMessage", "请输入云端文件名");
-  if (!file) return setMessage("uploadMessage", "请选择本地文件");
-  if (path.includes("..") || path.startsWith("__meta/") || /[\\:*?"<>|]/.test(path)) {
-    return setMessage("uploadMessage", "文件名不符合要求");
-  }
-  if (file.size > 1024 * 1024) return setMessage("uploadMessage", "文件超过 1MB，无法上传");
-  if (!token) return setMessage("uploadMessage", "请先验证 Token");
-
-  $("uploadBtn").disabled = true;
-  setMessage("uploadMessage", "上传中…", "status");
-  try {
-    const response = await fetch(`${base}/${encodeKey(path)}`, {
+  async function checkToken(value) {
+    var response = await fetch(base + "/api/auth", {
       method: "POST",
-      headers: { ...authHeaders(), "content-type": "text/plain; charset=utf-8" },
-      body: await file.arrayBuffer(),
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: value })
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setMessage("uploadMessage", explainError(data.error) + `（HTTP ${response.status}）`);
+    var data = await response.json().catch(function () { return {}; });
+    return { response: response, data: data };
+  }
+  async function verify() {
+    var value = $("tokenInput").value.trim();
+    if (!value) {
+      setMessage("authMessage", "请输入 Token");
       return;
     }
-    setMessage("uploadMessage", "上传成功", "success");
-    $("fileInput").value = "";
-    await loadFiles();
-  } catch {
-    setMessage("uploadMessage", "上传失败，请检查网络或重新验证 Token");
-  } finally {
-    $("uploadBtn").disabled = false;
+    $("verifyBtn").disabled = true;
+    setMessage("authMessage", "验证中…", "status");
+    try {
+      var result = await checkToken(value);
+      if (!result.response.ok || !result.data.ok) {
+        setMessage("authMessage", explainError(result.data.error));
+        return;
+      }
+      token = value;
+      isAdmin = true;
+      sessionStorage.setItem("cloudsync_token", token);
+      closeAuth();
+      show("adminPanel", true);
+      render();
+      window.scrollTo({ top: $("adminPanel").offsetTop - 10, behavior: "smooth" });
+    } catch (e) {
+      setMessage("authMessage", "无法连接服务，请确认项目已经重新部署");
+    } finally {
+      $("verifyBtn").disabled = false;
+    }
   }
-}
-
-async function removeFile(key) {
-  if (!confirm(`确定删除“${key}”吗？`)) return;
-  try {
-    const response = await fetch(`${base}/${encodeKey(key)}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return alert(explainError(data.error));
-    
-$("fileInput").onchange = () => { var f = $("fileInput").files[0]; if (f) $("pathInput").value = f.name; };
-loadFiles();
-  } catch {
-    alert("删除失败，请检查网络");
+  async function validateStoredToken() {
+    if (!token) return;
+    try {
+      var result = await checkToken(token);
+      if (result.response.ok && result.data.ok) {
+        isAdmin = true;
+        show("adminPanel", true);
+        render();
+      } else {
+        logout();
+      }
+    } catch (e) {
+      logout();
+    }
   }
-}
 
-function downloadBat() {
-  if (!token) { alert('请先验证 Token'); return; }
-  var batContent = '@echo off\r\n' +
-    'chcp 65001 >nul\r\n' +
-    'set "BASE_URL=' + base + '"\r\n' +
-    'set "TOKEN=' + token + '"\r\n' +
-    '\r\n' +
-    'echo ========================================\r\n' +
-    'echo   云端文件上传工具\r\n' +
-    'echo ========================================\r\n' +
-    'echo.\r\n' +
-    '\r\n' +
-    'if not "%~1"=="" (\r\n' +
-    '    set "FILE=%~1"\r\n' +
-    ') else (\r\n' +
-    '    set /p "FILE=将文件拖到此窗口后按回车："\r\n' +
-    ')\r\n' +
-    'if "%FILE%"=="" (echo 未指定文件 & pause & exit /b 1)\r\n' +
-    'if not exist "%FILE%" (echo 文件不存在 & pause & exit /b 1)\r\n' +
-    '\r\n' +
-    'for %%%%i in ("%FILE%") do set "DEFAULT_NAME=%%%%~nxi"\r\n' +
-    'set "KEY=%DEFAULT_NAME%"\r\n' +
-    'set /p "KEY=云端文件名（回车用 %DEFAULT_NAME%："\r\n' +
-    'if "%KEY%"=="" set "KEY=%DEFAULT_NAME%"\r\n' +
-    '\r\n' +
-    'echo 正在上传...\r\n' +
-    'curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" --data-binary "@%FILE%"\r\n' +
-    'echo.\r\n' +
-    'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败)\r\n' +
-    'echo.\r\n' +
-    'pause\r\n';
-  var link = document.createElement('a');
-  link.href = URL.createObjectURL(new Blob([batContent], { type: 'text/plain;charset=utf-8' }));
-  link.download = 'upload.bat';
-  link.click();
-  setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
-}
+  function chooseUpdate(key) {
+    $("pathInput").value = key;
+    show("adminPanel", true);
+    $("fileInput").click();
+  }
 
+  async function upload() {
+    var path = $("pathInput").value.trim();
+    var file = $("fileInput").files[0];
+    if (!path) return setMessage("uploadMessage", "请填写云端路径");
+    if (!file) return setMessage("uploadMessage", "请选择本地文件");
+    if (!isValidPath(path)) return setMessage("uploadMessage", "云端路径不符合要求");
+    if (file.size > 1048576) return setMessage("uploadMessage", "文件超过 1MB，平台限制");
+    if (!token) return setMessage("uploadMessage", "请先验证 Token");
 
-$("fileInput").onchange = () => { var f = $("fileInput").files[0]; if (f) $("pathInput").value = f.name; };
-loadFiles();
-validateStoredToken();
+    $("uploadBtn").disabled = true;
+    setMessage("uploadMessage", "上传中…", "status");
+    try {
+      var response = await fetch(base + "/" + encodeKey(path), {
+        method: "POST",
+        headers: Object.assign({}, authHeaders(), { "content-type": "text/plain; charset=utf-8" }),
+        body: await file.arrayBuffer()
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        setMessage("uploadMessage", explainError(data.error) + "（HTTP " + response.status + "）");
+        return;
+      }
+      setMessage("uploadMessage", "上传成功：" + data.file.url, "success");
+      $("fileInput").value = "";
+      await loadFiles();
+    } catch (e) {
+      setMessage("uploadMessage", "上传失败，请检查网络或重新验证 Token");
+    } finally {
+      $("uploadBtn").disabled = false;
+    }
+  }
+
+  async function proxyPull() {
+    var url = $("proxyUrlInput").value.trim();
+    var key = $("proxyKeyInput").value.trim();
+    if (!/^https?:\/\//i.test(url)) return setMessage("proxyMessage", "请输入 http/https 开头的远程地址");
+    if (key && !isValidPath(key)) return setMessage("proxyMessage", "云端路径不符合要求");
+    if (!token) return setMessage("proxyMessage", "请先验证 Token");
+
+    $("proxyBtn").disabled = true;
+    setMessage("proxyMessage", "正在拉取…", "status");
+    try {
+      var response = await fetch(base + "/api/proxy", {
+        method: "POST",
+        headers: Object.assign({}, authHeaders(), { "content-type": "application/json" }),
+        body: JSON.stringify({ url: url, key: key || undefined })
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        setMessage("proxyMessage", explainError(data.error) + "（HTTP " + response.status + "）");
+        return;
+      }
+      setMessage("proxyMessage", "拉取成功：" + data.file.url, "success");
+      $("proxyUrlInput").value = "";
+      $("proxyKeyInput").value = "";
+      await loadFiles();
+    } catch (e) {
+      setMessage("proxyMessage", "拉取失败，请检查远程地址或网络");
+    } finally {
+      $("proxyBtn").disabled = false;
+    }
+  }
+
+  async function removeFile(key) {
+    if (!confirm("确定删除“" + key + "”吗？")) return;
+    try {
+      var response = await fetch(base + "/" + encodeKey(key), {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        alert(explainError(data.error));
+        return;
+      }
+      await loadFiles();
+    } catch (e) {
+      alert("删除失败，请检查网络");
+    }
+  }
+
+  function downloadBat() {
+    if (!token) { alert("请先验证 Token"); return; }
+    var batContent =
+      "@echo off\r\n" +
+      "chcp 65001 >nul\r\n" +
+      "setlocal\r\n" +
+      'set "BASE_URL=' + base + '"\r\n' +
+      'set "TOKEN=' + token + '"\r\n' +
+      "\r\n" +
+      "echo ========================================\r\n" +
+      "echo   云端文件通用上传脚本 (EdgeOne File Hub)\r\n" +
+      "echo ========================================\r\n" +
+      "echo.\r\n" +
+      "\r\n" +
+      'if not "%~1"=="" (\r\n' +
+      '    set "FILE=%~1"\r\n' +
+      ") else (\r\n" +
+      '    set /p "FILE=将文件拖到此窗口后按回车："\r\n' +
+      ")\r\n" +
+      'if "%FILE%"=="" (echo 未指定文件 & pause & exit /b 1)\r\n' +
+      'if not exist "%FILE%" (echo 文件不存在 & pause & exit /b 1)\r\n' +
+      "\r\n" +
+      'for %%%%i in ("%FILE%") do set "DEFAULT_NAME=%%%%~nxi"\r\n' +
+      'set "KEY=%DEFAULT_NAME%"\r\n' +
+      'set /p "KEY=云端路径，可包含文件夹（回车默认 %DEFAULT_NAME%）："\r\n' +
+      'if "%KEY%"=="" set "KEY=%DEFAULT_NAME%"\r\n' +
+      "\r\n" +
+      "echo 正在上传...\r\n" +
+      'curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" --data-binary "@%FILE%"\r\n' +
+      "echo.\r\n" +
+      'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败，请检查 Token 或网络)\r\n' +
+      "echo.\r\n" +
+      "pause\r\n" +
+      "endlocal\r\n";
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([batContent], { type: "text/plain;charset=utf-8" }));
+    link.download = "upload.bat";
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  }
+
+  $("manageBtn").onclick = function () {
+    if (isAdmin) {
+      show("adminPanel", true);
+      window.scrollTo({ top: $("adminPanel").offsetTop - 10, behavior: "smooth" });
+    } else {
+      openAuth();
+    }
+  };
+  $("cancelBtn").onclick = closeAuth;
+  $("verifyBtn").onclick = verify;
+  $("tokenInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") verify();
+  });
+  $("refreshBtn").onclick = loadFiles;
+  $("uploadBtn").onclick = upload;
+  $("proxyBtn").onclick = proxyPull;
+  $("downloadBatBtn").onclick = downloadBat;
+  $("logoutBtn").onclick = logout;
+  $("fileInput").onchange = function () {
+    var f = $("fileInput").files[0];
+    if (!f) return;
+    var name = f.name;
+    if (currentFolder) name = currentFolder + "/" + name;
+    $("pathInput").value = name;
+  };
+
+  loadFiles();
+  validateStoredToken();
+})();
 </script>
 </body>
 </html>

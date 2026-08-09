@@ -1,8 +1,8 @@
 {
-  "name": "edgeone-files",
-  "version": "1.0.0",
+  "name": "edgeone-file-hub",
+  "version": "1.1.0",
   "private": true,
-  "description": "A simple EdgeOne Makers file upload, update and public read service",
+  "description": "EdgeOne File Hub - lightweight file upload/update/public-read service on EdgeOne Makers (云端文件)",
   "scripts": {
     "build": "echo no-build-needed"
   },

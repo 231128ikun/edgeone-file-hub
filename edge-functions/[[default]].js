@@ -8,14 +8,18 @@ const MAX_KEY_LENGTH = 512;
 export async function onRequestGet(context) {
   return run(async () => {
     const pathname = new URL(context.request.url).pathname;
-    return pathname === "/api/files" ? listFiles(context) : readFile(context);
+    if (pathname === "/api/files") return listFiles(context);
+    if (pathname === "/api/proxy") return proxyRead(context);
+    return readFile(context);
   });
 }
 
 export async function onRequestPost(context) {
   return run(async () => {
     const pathname = new URL(context.request.url).pathname;
-    return pathname === "/api/auth" ? verifyToken(context) : writeFile(context);
+    if (pathname === "/api/auth") return verifyToken(context);
+    if (pathname === "/api/proxy") return proxyPull(context);
+    return writeFile(context);
   });
 }
 
@@ -57,6 +61,7 @@ async function listFiles({ request, env }) {
       size: Number(meta.size) || 0,
       contentType: meta.contentType || "application/octet-stream",
       updatedAt: meta.updatedAt || null,
+      source: meta.source || null,
       url: `${base}/${encodeKey(meta.key)}`,
     });
   }
@@ -121,6 +126,83 @@ async function deleteFile({ request, env }) {
   return json({ ok: true, key });
 }
 
+// POST /api/proxy  { url, key? }  —— 拉取远程地址并保存为云端文件
+async function proxyPull({ request, env }) {
+  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
+  let url = "", key = "";
+  try {
+    const body = await request.json();
+    url = typeof body?.url === "string" ? body.url.trim() : "";
+    key = typeof body?.key === "string" ? body.key.trim() : "";
+  } catch {
+    return json({ error: "invalid_request" }, 400);
+  }
+  if (!/^https?:\/\//i.test(url)) return json({ error: "invalid_url" }, 400);
+
+  key = key || remoteBaseName(url);
+  const normalized = normalizeKey(key);
+  if (!normalized || normalized.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+
+  const remote = await fetchRemote(url);
+  if (!remote.ok) return json({ error: "remote_fetch_failed", status: remote.status }, 502);
+  if (remote.size > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
+
+  const contentType = guessContentType(normalized);
+  const requestUrl = new URL(request.url);
+  const base = (env?.PUBLIC_BASE_URL || requestUrl.origin).replace(/\/+$/, "");
+  const metadata = { key: normalized, size: remote.size, contentType, updatedAt: new Date().toISOString(), source: url };
+
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  await store.set(normalized, remote.buffer);
+  await store.setJSON(META_PREFIX + normalized, metadata);
+
+  return json({ ok: true, file: { ...metadata, url: `${base}/${encodeKey(normalized)}` } });
+}
+
+// GET /api/proxy?url=...  —— 代理读取远程内容（需 Token）
+async function proxyRead({ request, env }) {
+  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
+  const url = new URL(request.url).searchParams.get("url") || "";
+  if (!/^https?:\/\//i.test(url)) return json({ error: "invalid_url" }, 400);
+
+  const remote = await fetchRemote(url);
+  if (!remote.ok) return json({ error: "remote_fetch_failed", status: remote.status }, 502);
+
+  const pathPart = url.split(/[?#]/)[0];
+  const contentType = remote.contentType || guessContentType(pathPart) || "application/octet-stream";
+  return new Response(remote.buffer, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      ...corsHeaders(),
+    },
+  });
+}
+
+async function fetchRemote(url) {
+  try {
+    const res = await fetch(url, { redirect: "follow" });
+    if (!res.ok) return { ok: false, status: res.status };
+    const declared = Number(res.headers.get("content-length") || 0);
+    if (declared > MAX_BODY_BYTES) return { ok: false, status: 413 };
+    const buffer = await res.arrayBuffer();
+    if (buffer.byteLength > MAX_BODY_BYTES) return { ok: false, status: 413 };
+    return { ok: true, buffer, size: buffer.byteLength, contentType: res.headers.get("content-type") || "" };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+
+function remoteBaseName(url) {
+  try {
+    const path = new URL(url).pathname.split("/").filter(Boolean).pop();
+    return path ? decodeURIComponent(path) : "remote.txt";
+  } catch {
+    return "remote.txt";
+  }
+}
+
 function guessContentType(key) {
   const ext = key.split(".").pop().toLowerCase();
   const map = {
@@ -129,6 +211,7 @@ function guessContentType(key) {
     html: "text/html; charset=utf-8", htm: "text/html; charset=utf-8",
     css: "text/css; charset=utf-8", js: "application/javascript; charset=utf-8",
     mjs: "application/javascript; charset=utf-8", md: "text/plain; charset=utf-8",
+    ini: "text/plain; charset=utf-8", conf: "text/plain; charset=utf-8", log: "text/plain; charset=utf-8",
     yaml: "text/plain; charset=utf-8", yml: "text/plain; charset=utf-8",
     png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif",
     svg: "image/svg+xml", webp: "image/webp", ico: "image/x-icon",
@@ -141,6 +224,10 @@ function guessContentType(key) {
 
 function getKey(requestUrl) {
   const raw = new URL(requestUrl).pathname.replace(/^\/+/, "");
+  return normalizeKey(raw);
+}
+
+function normalizeKey(raw) {
   if (!raw || raw.length > MAX_KEY_LENGTH) return null;
   let key;
   try { key = decodeURIComponent(raw); } catch { return null; }
