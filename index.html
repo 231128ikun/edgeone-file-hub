@@ -1,312 +1,315 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>edgeone-sync · 云端文件管理</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>云端文件</title>
 <style>
-  :root { --blue:#0f6fde; --bg:#f4f6f9; --card:#ffffff; --line:#e3e8ef; --text:#1f2937; --muted:#6b7280; --danger:#dc2626; --ok:#16a34a; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.65; }
-  header { background:linear-gradient(135deg,#0b5bc7,#0f6fde); color:#fff; padding:28px 20px 22px; }
-  header .wrap { max-width:960px; margin:0 auto; }
-  header h1 { margin:0; font-size:22px; }
-  header p { margin:6px 0 0; opacity:.92; font-size:14px; }
-  main { max-width:960px; margin:0 auto; padding:20px 16px 60px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(16,24,40,.06); }
-  .card h2 { margin:0 0 12px; font-size:16px; display:flex; align-items:center; gap:8px; }
-  .card h2 .step { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; font-size:13px; align-items:center; justify-content:center; flex:none; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0; }
-  input[type=text], input[type=password] { flex:1 1 220px; min-width:200px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
-  input[type=file] { flex:1 1 260px; }
-  button { padding:9px 16px; border:none; border-radius:8px; background:var(--blue); color:#fff; font-size:14px; cursor:pointer; }
-  button:hover { filter:brightness(1.08); }
-  button.ghost { background:#eef4fc; color:var(--blue); }
-  button.danger { background:#fdeaea; color:var(--danger); }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  .hint { color:var(--muted); font-size:13px; margin:6px 0 0; }
-  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
-  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; word-break:break-all; }
-  th { color:var(--muted); font-weight:600; font-size:13px; background:#fafbfc; }
-  td .url { font-size:12px; color:var(--blue); }
-  .tag { display:inline-block; background:#eef4fc; color:var(--blue); border-radius:6px; padding:1px 8px; font-size:12px; }
-  pre { background:#0f172a; color:#e2e8f0; border-radius:8px; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.6; }
-  code { background:#eef2f7; padding:1px 6px; border-radius:4px; font-size:13px; }
-  #toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99; }
-  #toast.show { opacity:1; }
-  .empty { color:var(--muted); text-align:center; padding:18px 0; }
-  .small { font-size:13px; }
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:#1f2937;background:#f6f7f9}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e5e7eb}header .wrap,main{max-width:960px;margin:auto;padding-left:20px;padding-right:20px}.top{height:66px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:20px;font-weight:700}.sub{color:#6b7280;font-size:13px;margin-top:2px}.manage-link{border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:8px 13px;color:#374151;cursor:pointer}.manage-link:hover{background:#f3f4f6}main{padding-top:28px;padding-bottom:48px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px}.panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.panel-title h1,.panel-title h2{margin:0;font-size:18px}.muted{color:#6b7280;font-size:14px}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:8px;padding:9px 14px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px}button:hover{filter:brightness(1.05)}button.secondary{background:#eef2ff;color:#1d4ed8}button.danger{background:#fef2f2;color:#b91c1c}button:disabled{opacity:.55;cursor:not-allowed}input[type=text],input[type=password]{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none}input:focus{border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}.form-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.upload-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:10px;align-items:center}.field label{display:block;color:#6b7280;font-size:13px;margin-bottom:5px}.file-input{width:100%;font-size:14px}.hint{font-size:13px;color:#6b7280;margin:10px 0 0}.error{color:#b91c1c;font-size:14px;margin-top:10px}.success{color:#15803d;font-size:14px;margin-top:10px}.hidden{display:none!important}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:12px 10px;border-bottom:1px solid #edf0f2;text-align:left;vertical-align:middle}th{color:#6b7280;font-size:13px;font-weight:600;white-space:nowrap}td:first-child{font-weight:600;min-width:180px}.url{display:block;max-width:270px;color:#2563eb;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.url:hover{text-decoration:underline}.empty{text-align:center;padding:34px 10px;color:#6b7280}.status{font-size:13px;color:#6b7280}.admin-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.admin-head h2{margin:0;font-size:17px}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.file-actions{display:flex;gap:6px;flex-wrap:wrap}.file-actions button{padding:6px 9px;font-size:12px}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modal{width:min(430px,100%);background:#fff;border-radius:12px;padding:22px;box-shadow:0 18px 45px rgba(0,0,0,.2)}.modal h2{margin:0 0 8px;font-size:18px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}@media(max-width:700px){.upload-row,.admin-grid,.form-row{grid-template-columns:1fr}.top{height:auto;padding-top:15px;padding-bottom:15px;align-items:flex-start}.manage-link{margin-top:2px}th:nth-child(2),td:nth-child(2){display:none}.url{max-width:180px}}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <h1>edgeone-sync · 云端文件管理</h1>
-    <p>部署在 EdgeOne Makers 的同步服务：上传订阅/结果文件，生成公开 URL 供外部读取。</p>
-  </div>
-</header>
+<header><div class="wrap top"><div><div class="brand">云端文件</div><div class="sub">公开读取 · 管理员上传和更新</div></div><button class="manage-link" id="manageBtn">管理</button></div></header>
 <main>
-  <section class="card">
-    <h2><span class="step">1</span> 写入 Token</h2>
-    <div class="row">
-      <input type="password" id="token" placeholder="WRITE_TOKEN（部署时在环境变量里设置的那个）" />
-      <button id="saveToken">保存并加载列表</button>
-    </div>
-    <p class="hint">Token 只保存在本浏览器（localStorage），管理操作（列表/上传/删除）需要它；公开读取链接不需要 token。</p>
-  </section>
-
-  <section class="card">
-    <h2><span class="step">2</span> 上传 / 更新文件</h2>
-    <div class="row">
-      <input type="text" id="upKey" placeholder="云端路径，如 subs/cloudflare-ips.txt（可含目录/中文）" />
-      <input type="file" id="upFile" />
-      <button id="upBtn">上传</button>
-    </div>
-    <div class="row small"><label><input type="checkbox" id="keepKey" /> 记住这个路径，下次打开自动填入</label></div>
-    <p class="hint">单次请求最大 1MB（Makers 平台限制）。上传成功后外部访问 URL = https://&lt;你的域名&gt;/&lt;云端路径&gt;。</p>
-  </section>
-
-  <section class="card">
-    <h2><span class="step">3</span> 已上传文件</h2>
-    <div class="row">
-      <button id="refresh">刷新列表</button>
-      <button class="ghost" id="dlBat">下载 update.bat（一键更新）</button>
-      <span class="hint" id="listState" style="margin:0"></span>
-    </div>
-    <table>
-      <thead>
-        <tr><th>路径</th><th>大小</th><th>更新时间</th><th>外部 URL</th><th>操作</th></tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div class="empty" id="empty">还没有文件，上传一个试试。</div>
-  </section>
-
-  <section class="card">
-    <h2><span class="step">4</span> 用法说明</h2>
-    <h3>填到 iptest-web</h3>
-    <table>
-      <tr><th>配置项</th><th>填什么</th></tr>
-      <tr><td>云端地址 / base_url</td><td><span class="tag" id="baseTag">https://&lt;你的域名&gt;</span></td></tr>
-      <tr><td>Token</td><td>部署时在环境变量里设置的 <code>WRITE_TOKEN</code></td></tr>
-      <tr><td>输出文件名</td><td>如 <code>subs/cloudflare-ips.txt</code>（可含目录/中文）</td></tr>
-    </table>
-    <h3>命令行（curl）</h3>
-    <pre id="curlPre"></pre>
-    <h3>update.bat 一键更新</h3>
-    <p class="small">在「已上传文件」里点击 <strong>下载 update.bat</strong>：把本地文件直接拖到 bat 上（或双击后输入路径），脚本会自动 PUT 到云端指定路径并覆盖，适合每次跑完 iptest 顺手更新订阅。</p>
-    <h3>限制</h3>
-    <p class="small">单请求正文 ≤ 1MB；存储免费额度 1GB；读取默认强一致（上传后立即可读）。</p>
-  </section>
+<section class="panel"><div class="panel-title"><h1>文件列表</h1><div class="actions"><span class="status" id="listStatus">正在加载…</span><button class="secondary" id="refreshBtn">刷新</button></div></div><div class="table-wrap"><table><thead><tr><th>文件</th><th>大小</th><th>上传时间</th><th>公开地址</th><th id="actionHead" class="hidden">操作</th></tr></thead><tbody id="fileRows"></tbody></table><div id="empty" class="empty hidden">暂时没有上传文件。</div></div></section>
+<section id="adminPanel" class="panel hidden"><div class="admin-head"><h2>管理文件</h2><button class="secondary" id="logoutBtn">退出管理</button></div><div class="admin-grid"><div class="field"><label for="pathInput">云端文件名</label><input id="pathInput" type="text" placeholder="例如：docs/example.txt"></div><div class="field"><label for="fileInput">选择本地文件</label><input id="fileInput" class="file-input" type="file"></div></div><div class="actions" style="margin-top:14px"><button id="uploadBtn">上传 / 更新</button><span class="status">单个文件最大 1MB</span></div><div id="uploadMessage"></div></section>
 </main>
-<div id="toast"></div>
-<script>
-"use strict";
-const $ = id => document.getElementById(id);
+<div id="modalBackdrop" class="modal-backdrop hidden"><div class="modal"><h2>进入管理</h2><p class="muted">请输入 EdgeOne 环境变量中的 WRITE_TOKEN。</p><input id="tokenInput" type="password" autocomplete="off" placeholder="WRITE_TOKEN"><div id="authMessage"></div><div class="modal-actions"><button class="secondary" id="cancelAuth">取消</button><button id="verifyBtn">验证</button></div></div></div>
+<script>const $ = (id) => document.getElementById(id);
 const base = location.origin;
-let token = localStorage.getItem("eo_token") || "";
+let token = sessionStorage.getItem("cloudsync_token") || "";
+let isAdmin = false;
+let files = [];
 
-if (token) $("token").value = token;
-const savedKey = localStorage.getItem("eo_upKey");
-if (savedKey) $("upKey").value = savedKey;
-
-$("baseTag").textContent = base;
-$("curlPre").textContent =
-  '# 上传/覆盖（token 在请求头，不进 URL）\r\n' +
-  'curl.exe -X PUT "' + base + '/subs/cloudflare-ips.txt" -H "x-token: <WRITE_TOKEN>" --data-binary "@sub.txt"\r\n\r\n' +
-  '# 公开读取（无需 token）\r\n' +
-  'curl.exe "' + base + '/subs/cloudflare-ips.txt"';
-
-function toast(msg) {
-  const t = $("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove("show"), 2600);
+function show(id, visible = true) {
+  $(id).classList.toggle("hidden", !visible);
 }
 
-function safePath(key) {
-  if (!key) return null;
-  if (/[\\:*?"<>|]/.test(key)) { toast("路径包含非法字符（不允许 \\ : * ? \" < > |）"); return null; }
-  if (key.startsWith("__meta/")) { toast("__meta/ 是系统保留前缀"); return null; }
-  return key;
+function setMessage(id, text, type = "error") {
+  const element = $(id);
+  element.className = type;
+  element.textContent = text;
 }
 
-function encKey(key) {
-  return key.split("/").map(s => encodeURIComponent(s)).join("/");
+function encodeKey(key) {
+  return key.split("/").map((part) => encodeURIComponent(part)).join("/");
 }
 
-function fmtSize(n) {
-  if (n < 1024) return n + " B";
-  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
-  return (n / 1048576).toFixed(2) + " MB";
+function formatSize(value) {
+  const size = Number(value) || 0;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(2)} MB`;
 }
 
-function fmtTime(iso) {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  return isNaN(d) ? iso : d.toLocaleString();
+function formatTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString();
 }
 
-function headers(withToken) {
-  const h = {};
-  if (withToken && token) h["x-token"] = token;
-  return h;
+function authHeaders() {
+  return token ? { "x-token": token } : {};
 }
 
-async function load() {
-  $("rows").innerHTML = "";
-  $("empty").style.display = "none";
-  $("listState").textContent = "加载中…";
+function explainError(code) {
+  return {
+    invalid_token: "Token 不正确或已失效",
+    server_token_not_configured: "服务端还没有设置 WRITE_TOKEN",
+    file_too_large: "文件超过 1MB",
+    invalid_key: "文件名不符合要求",
+    reserved_key: "这个文件名不能使用",
+    server_error: "服务端发生错误，请确认已重新部署并稍后重试",
+  }[code] || code || "操作失败";
+}
+
+async function loadFiles() {
+  $("listStatus").textContent = "正在加载…";
   try {
-    const res = await fetch(base + "/api/files", { headers: headers(true) });
-    if (res.status === 403) {
-      $("listState").textContent = "Token 缺失或错误：请先在步骤 1 填写 WRITE_TOKEN 并保存。";
+    const response = await fetch(`${base}/api/files`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    files = data.files || [];
+    renderFiles();
+    $("listStatus").textContent = `${files.length} 个文件`;
+  } catch {
+    files = [];
+    renderFiles();
+    $("listStatus").textContent = "加载失败";
+    $("empty").textContent = "文件列表加载失败，请刷新重试。";
+  }
+}
+
+function appendTextCell(row, value, className = "") {
+  const cell = document.createElement("td");
+  cell.textContent = value == null ? "" : String(value);
+  if (className) cell.className = className;
+  row.appendChild(cell);
+  return cell;
+}
+
+function renderFiles() {
+  const body = $("fileRows");
+  body.replaceChildren();
+  show("empty", files.length === 0);
+  show("actionHead", isAdmin);
+  if (!files.length) return;
+
+  for (const file of files) {
+    const row = document.createElement("tr");
+    appendTextCell(row, file.key);
+    appendTextCell(row, formatSize(file.size));
+    appendTextCell(row, formatTime(file.updatedAt));
+
+    const urlCell = document.createElement("td");
+    const link = document.createElement("a");
+    link.className = "url";
+    link.href = file.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = file.url;
+    urlCell.appendChild(link);
+    row.appendChild(urlCell);
+
+    if (isAdmin) {
+      const actionCell = document.createElement("td");
+      const actionBox = document.createElement("div");
+      actionBox.className = "file-actions";
+
+      const updateButton = document.createElement("button");
+      updateButton.className = "secondary";
+      updateButton.textContent = "更新";
+      updateButton.onclick = () => chooseUpdate(file.key);
+
+      const batButton = document.createElement("button");
+      batButton.className = "secondary";
+      batButton.textContent = "BAT";
+      batButton.onclick = () => downloadBat(file.key);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "danger";
+      deleteButton.textContent = "删除";
+      deleteButton.onclick = () => removeFile(file.key);
+
+      actionBox.append(updateButton, batButton, deleteButton);
+      actionCell.appendChild(actionBox);
+      row.appendChild(actionCell);
+    }
+    body.appendChild(row);
+  }
+}
+
+function openAuth() {
+  $("tokenInput").value = "";
+  $("authMessage").textContent = "";
+  show("modalBackdrop");
+  setTimeout(() => $("tokenInput").focus(), 0);
+}
+
+function closeAuth() {
+  show("modalBackdrop", false);
+}
+
+async function checkToken(value) {
+  const response = await fetch(`${base}/api/auth`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: value }),
+  });
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
+async function verify() {
+  const value = $("tokenInput").value.trim();
+  if (!value) {
+    setMessage("authMessage", "请输入 Token");
+    return;
+  }
+
+  $("verifyBtn").disabled = true;
+  $("authMessage").textContent = "验证中…";
+  try {
+    const { response, data } = await checkToken(value);
+    if (!response.ok || !data.ok) {
+      setMessage("authMessage", explainError(data.error));
       return;
     }
-    if (!res.ok) { $("listState").textContent = "加载失败 HTTP " + res.status; return; }
-    const data = await res.json();
-    render(data.files || []);
-    $("listState").textContent = "共 " + (data.count || 0) + " 个文件";
-  } catch (e) {
-    $("listState").textContent = "网络错误：" + e.message;
+    token = value;
+    isAdmin = true;
+    sessionStorage.setItem("cloudsync_token", token);
+    closeAuth();
+    show("adminPanel");
+    renderFiles();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  } catch {
+    setMessage("authMessage", "无法连接服务，请确认项目已经重新部署");
+  } finally {
+    $("verifyBtn").disabled = false;
   }
 }
 
-function render(files) {
-  const rowsEl = $("rows");
-  if (!files.length) { $("empty").style.display = "block"; return; }
-  for (const f of files) {
-    const tr = document.createElement("tr");
-
-    const tdKey = document.createElement("td");
-    tdKey.textContent = f.key;
-    tr.appendChild(tdKey);
-
-    const tdSize = document.createElement("td");
-    tdSize.textContent = fmtSize(f.size);
-    tr.appendChild(tdSize);
-
-    const tdTime = document.createElement("td");
-    tdTime.textContent = fmtTime(f.updatedAt);
-    tr.appendChild(tdTime);
-
-    const tdUrl = document.createElement("td");
-    const a = document.createElement("a");
-    a.href = f.url; a.target = "_blank"; a.rel = "noopener";
-    a.textContent = f.url; a.className = "url";
-    tdUrl.appendChild(a);
-    tr.appendChild(tdUrl);
-
-    const tdOps = document.createElement("td");
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "ghost"; copyBtn.textContent = "复制链接";
-    copyBtn.style.marginRight = "6px";
-    copyBtn.onclick = () => copyLink(f.url);
-    const delBtn = document.createElement("button");
-    delBtn.className = "danger"; delBtn.textContent = "删除";
-    delBtn.onclick = () => delFile(f.key);
-    tdOps.appendChild(copyBtn);
-    tdOps.appendChild(delBtn);
-    tr.appendChild(tdOps);
-
-    rowsEl.appendChild(tr);
-  }
-}
-
-async function copyLink(url) {
-  try { await navigator.clipboard.writeText(url); toast("已复制：\n" + url); }
-  catch { toast("复制失败，请手动复制"); }
-}
-
-async function delFile(key) {
-  if (!confirm("确定删除 " + key + " ？公开链接将立即失效。")) return;
+async function validateStoredToken() {
+  if (!token) return;
   try {
-    const res = await fetch(base + "/" + encKey(key), { method: "DELETE", headers: headers(true) });
-    if (res.ok) { toast("已删除 " + key); load(); }
-    else { const d = await res.json().catch(() => ({})); toast("删除失败：" + (d.error || "HTTP " + res.status)); }
-  } catch (e) { toast("网络错误：" + e.message); }
-}
-
-$("saveToken").onclick = () => {
-  token = $("token").value.trim();
-  if (!token) { toast("请先填写 Token"); return; }
-  localStorage.setItem("eo_token", token);
-  toast("Token 已保存");
-  load();
-};
-
-$("refresh").onclick = () => {
-  if (!token) { toast("请先填写并保存 Token"); return; }
-  load();
-};
-
-$("upBtn").onclick = async () => {
-  const key = safePath($("upKey").value.trim());
-  const file = $("upFile").files[0];
-  if (!key) { toast("请填写云端路径"); return; }
-  if (!file) { toast("请选择要上传的文件"); return; }
-  if (file.size > 1024 * 1024) { toast("文件超过 1MB（Makers 平台限制）"); return; }
-  if (!token) { toast("请先填写并保存 Token"); return; }
-  if ($("keepKey").checked) localStorage.setItem("eo_upKey", $("upKey").value.trim());
-
-  const btn = $("upBtn");
-  btn.disabled = true;
-  try {
-    const res = await fetch(base + "/" + encKey(key), {
-      method: "PUT",
-      headers: headers(true),
-      body: await file.text()
-    });
-    const d = await res.json().catch(() => ({}));
-    if (res.ok) {
-      toast("上传成功：\n" + (d.url || ""));
-      $("upFile").value = "";
-      load();
+    const { response, data } = await checkToken(token);
+    if (response.ok && data.ok) {
+      isAdmin = true;
+      show("adminPanel");
+      renderFiles();
     } else {
-      toast("上传失败：" + (d.error || "HTTP " + res.status));
+      token = "";
+      isAdmin = false;
+      sessionStorage.removeItem("cloudsync_token");
+      renderFiles();
     }
-  } catch (e) { toast("网络错误：" + e.message); }
-  finally { btn.disabled = false; }
-};
+  } catch {
+    token = "";
+    isAdmin = false;
+    sessionStorage.removeItem("cloudsync_token");
+    renderFiles();
+  }
+}
 
-$("dlBat").onclick = () => {
-  if (!token) { toast("请先填写并保存 Token（会写入 bat）"); return; }
-  const key = safePath($("upKey").value.trim()) || "subs/cloudflare-ips.txt";
-  const enc = encKey(key);
-  const esc = s => String(s).replace(/%/g, "%%");
-  const bat =
-    "@echo off\r\n" +
-    "chcp 65001 >nul\r\n" +
-    "REM ============================================\r\n" +
-    "REM  edgeone-sync 一键上传更新脚本\r\n" +
-    "REM  用法：把文件拖到本 bat 上，或双击后输入文件路径\r\n" +
-    "REM  目标：" + base + "/" + enc + "\r\n" +
-    "REM ============================================\r\n" +
-    'set "BASE_URL=' + esc(base) + '"\r\n' +
-    'set "KEY=' + esc(enc) + '"\r\n' +
-    'set "TOKEN=' + esc(token) + '"\r\n' +
-    'if "%~1"=="" (\r\n' +
-    '  set /p "FILE=请输入要上传的文件路径（可把文件拖进来）: "\r\n' +
-    ") else (\r\n" +
-    '  set "FILE=%~1"\r\n' +
-    ")\r\n" +
-    'if "%FILE%"=="" ( echo 未输入文件 & pause & exit /b 1 )\r\n' +
-    'if not exist "%FILE%" ( echo 文件不存在: %FILE% & pause & exit /b 1 )\r\n' +
-    'echo 正在上传到 %BASE_URL%/%KEY% ...\r\n' +
-    'curl.exe -s -X PUT "%BASE_URL%/%KEY%" -H "x-token: %TOKEN%" --data-binary "@%FILE%"\r\n' +
-    "echo.\r\n" +
-    "echo 上传完成，退出码: %errorlevel%\r\n" +
-    "pause";
-  const blob = new Blob(["\ufeff" + bat], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "update.bat";
-  a.click();
-  toast("update.bat 已生成：把文件拖上去即可更新");
-};
+function chooseUpdate(key) {
+  $("pathInput").value = key;
+  show("adminPanel");
+  $("fileInput").click();
+}
 
-if (token) load();
-</script>
+async function upload() {
+  const path = $("pathInput").value.trim();
+  const file = $("fileInput").files[0];
+  if (!path) return setMessage("uploadMessage", "请输入云端文件名");
+  if (!file) return setMessage("uploadMessage", "请选择本地文件");
+  if (path.includes("..") || path.startsWith("__meta/") || /[\\:*?"<>|]/.test(path)) {
+    return setMessage("uploadMessage", "文件名不符合要求");
+  }
+  if (file.size > 1024 * 1024) return setMessage("uploadMessage", "文件超过 1MB，无法上传");
+  if (!token) return setMessage("uploadMessage", "请先验证 Token");
+
+  $("uploadBtn").disabled = true;
+  setMessage("uploadMessage", "上传中…", "status");
+  try {
+    const response = await fetch(`${base}/${encodeKey(path)}`, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: await file.arrayBuffer(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage("uploadMessage", explainError(data.error) + `（HTTP ${response.status}）`);
+      return;
+    }
+    setMessage("uploadMessage", "上传成功", "success");
+    $("fileInput").value = "";
+    await loadFiles();
+  } catch {
+    setMessage("uploadMessage", "上传失败，请检查网络或重新验证 Token");
+  } finally {
+    $("uploadBtn").disabled = false;
+  }
+}
+
+async function removeFile(key) {
+  if (!confirm(`确定删除“${key}”吗？`)) return;
+  try {
+    const response = await fetch(`${base}/${encodeKey(key)}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return alert(explainError(data.error));
+    await loadFiles();
+  } catch {
+    alert("删除失败，请检查网络");
+  }
+}
+
+function downloadBat(key) {
+  const encodedKey = encodeKey(key);
+  const target = `${base}/${encodedKey}`;
+  const bat = `@echo off\r
+chcp 65001 >nul\r
+set "BASE_URL=${base}"\r
+set "KEY=${encodedKey}"\r
+set "TOKEN=${token}"\r
+if "%~1"=="" set /p "FILE=把文件拖到这里后按回车："\r
+if not "%~1"=="" set "FILE=%~1"\r
+if "%FILE%"=="" exit /b 1\r
+if not exist "%FILE%" (echo 文件不存在&pause&exit /b 1)\r
+echo 正在更新 ${target}\r
+timeout /t 1 >nul\r
+curl.exe -sS -X PUT "%BASE_URL%/%KEY%" -H "x-token: %TOKEN%" --data-binary "@%FILE%"\r
+echo.\r
+pause\r
+`;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob(["\ufeff" + bat], { type: "text/plain;charset=utf-8" }));
+  link.download = `update-${key.split("/").pop()}.bat`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+$("manageBtn").onclick = () => isAdmin ? (show("adminPanel"), window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })) : openAuth();
+$("cancelAuth").onclick = closeAuth;
+$("verifyBtn").onclick = verify;
+$("tokenInput").onkeydown = (event) => { if (event.key === "Enter") verify(); };
+$("refreshBtn").onclick = loadFiles;
+$("fileInput").onchange = () => {
+  const file = $("fileInput").files[0];
+  if (file && !$("pathInput").value.trim()) $("pathInput").value = file.name;
+};
+$("uploadBtn").onclick = upload;
+$("logoutBtn").onclick = () => {
+  token = "";
+  isAdmin = false;
+  sessionStorage.removeItem("cloudsync_token");
+  show("adminPanel", false);
+  renderFiles();
+};
+$("modalBackdrop").onclick = (event) => { if (event.target === $("modalBackdrop")) closeAuth(); };
+
+loadFiles();
+validateStoredToken();</script>
 </body>
 </html>

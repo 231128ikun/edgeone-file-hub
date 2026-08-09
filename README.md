@@ -1,102 +1,149 @@
-# edgeone-sync
+# 云端文件
 
-部署在 **EdgeOne Makers** 上的云端同步服务：`iptest-web`（或其它本地工具）把订阅 / IP 库 / 检测结果上传到云端 **Blob 持久化存储**，其他人通过**公开 URL** 直接读取，无需 token。
+一个部署在 **EdgeOne Makers** 上的轻量文件服务：
 
-自带一个**网页管理面板**（仓库根目录 `index.html`）：
-- 汇总已上传文件：路径、大小、更新时间、外部访问 URL
-- 手动选择文件上传 / 覆盖更新、删除
-- 复制每个文件的公开链接
-- 下载 `update.bat`：把本地文件拖到 bat 上即可一键上传更新
-- 内置用法说明（curl、iptest-web 配置）
+- 任何人可以在主页查看文件列表、上传时间和公开地址
+- 只有管理员 Token 可以上传、更新和删除文件
+- 管理员验证 Token 后，可以生成一个带 Token 的 `update.bat`
+- 文件内容保存在 EdgeOne Makers Blob，持久化在云端
 
-## 项目文件
+## 项目结构
 
 ```text
-edgeone-sync/
-├── index.html                    # 网页管理面板（也满足直接上传必须的入口文件）
-├── package.json                  # 依赖 @edgeone/pages-blob
+cloudsync/
+├── index.html
+├── package.json
 ├── edge-functions/
-│   └── [[default]].js            # Makers Edge Function（唯一的输出代码）
+│   └── [[default]].js
 └── README.md
 ```
 
-> Makers 规范：**不需要在控制台里单独找“边缘函数”入口**。函数代码放在仓库根目录 `edge-functions/` 里，随项目一起部署，平台自动按文件路径生成路由（`[[default]].js` = 根路径下任意多级路径）。存储用 `@edgeone/pages-blob`，`getStore()` 自动创建命名空间，**不用在控制台绑定 KV/Blob**。
+`index.html` 是简洁的文件列表和管理页面；`edge-functions/[[default]].js` 是 Makers Edge Function。Makers 会自动识别 `edge-functions/`，不需要在控制台另找“边缘函数”入口。
 
-## 一、部署（推荐：导入 Git，自动联动）
+## 部署
 
-1. 把仓库推到 GitHub。
-2. 打开 [EdgeOne Makers](https://edgeone.ai) 控制台 → **创建项目** → **导入 Git 仓库** → 授权 GitHub → 选择本仓库。
-3. 构建配置：
-   - 根目录：`/`；构建命令：`npm run build`（已内置空 build）；输出目录：`/`；Node 版本默认即可。
-4. 选择加速区域，点 **开始部署**，得到默认域名 URL（形如 `https://xxx.edgeone.app`，以控制台显示为准）。
-5. **设置环境变量**（必须，否则写入返回 403）：
-   - **项目设置 → 环境管理 → 编辑（生产）→ 环境变量** → 添加 `WRITE_TOKEN`（自己生成随机串，如 `wrt-xxxxxxxx...`）。
-   - 环境变量只对**新部署**生效，设置完到构建部署页**再部署一次**。
-6. 之后每次 `git push` 自动重新部署。
+推荐使用 **导入 Git 仓库**，不要使用直接上传 ZIP。因为 Blob SDK 需要在部署时安装依赖。
 
-## 二、部署（备选：直接上传 ZIP）
+1. 将此项目推送到 GitHub。
+2. EdgeOne Makers → **创建项目** → **导入 Git 仓库** → 选择此仓库。
+3. 构建设置填写：
+   - 根目录：`/`
+   - 构建命令：`npm run build`
+   - 输出目录：`/`
+4. 开始部署，记下 Makers 提供的访问地址。
+5. 进入 **项目设置 → 环境管理 → 生产环境 → 环境变量**，添加：
 
-1. Makers 控制台 **创建项目 → 直接上传**。
-2. 把**整个项目文件夹**（根目录必须含 `index.html` 和 `edge-functions/`）打成 ZIP 拖入。
-3. 直接上传**不会执行 npm install**，依赖需能解析；失败就改用 Git 导入。
+   ```text
+   WRITE_TOKEN=你自己设置的一串随机字符
+   ```
 
-## 三、自定义域名（可选）
+6. 修改环境变量后，必须重新部署一次，新的 Token 才会生效。
 
-Makers 自带默认 URL 可直接用。想用自己的域名：控制台 **域名管理 → 添加自定义域名** → 归属校验 + CNAME + HTTPS（大陆加速区域需备案）。
+> `PUBLIC_BASE_URL` 不需要设置。系统会自动使用当前访问域名生成公开地址。如果以后绑定了自定义域名，重新上传一次文件即可生成新的地址。
 
-## 四、接口协议
+## 使用网页
+
+打开部署后的首页：
 
 ```text
-公开：
-  GET    /<key>                          → 200 原文（无需 token）
-
-管理（请求头 x-token: <WRITE_TOKEN> 或 Authorization: Bearer）：
-  GET    /api/files                     → 200 {"files":[{"key","url","size","updatedAt"}],"count":N}
-  PUT    /<key>  Body: 原文              → 200 {"ok":true,"url":"...","size":N}
-  POST   /<key>  Body: 原文              → 同上（兼容）
-  DELETE /<key>                          → 200 {"ok":true}
+https://你的域名/
 ```
 
-- `<key>` 即 URL 路径，如 `subs/cloudflare-ips.txt`、`subs/订阅.txt`（支持目录/中文）。
-- 内容存在 Blob `<key>`，元数据（大小/更新时间/url）存在 `__meta/<key>`；列表由 `/api/files` 汇总。
-- token 只能在请求头（`x-token` 或 `Authorization: Bearer`），**不进 URL**。CORS 已放开。
+### 普通访问
 
-## 五、管理面板使用
+首页直接显示：
 
-部署后直接打开首页（`https://<你的域名>/`）：
-1. **写入 Token**：填 `WRITE_TOKEN` 并保存（只存本浏览器）。
-2. **上传/更新**：填云端路径（如 `subs/cloudflare-ips.txt`）→ 选本地文件 → 上传。
-3. **已上传文件**：表格里看路径/大小/更新时间/外部 URL，可一键复制外链、删除。
-4. **下载 update.bat**：点击后生成脚本（内含你的域名、路径和 token），本地把文件拖到 bat 上即自动 PUT 覆盖更新。
-   - bat 内含 token，**别外传**；改路径/域名直接右键编辑 bat 顶部的 `BASE_URL / KEY / TOKEN`。
+- 文件名
+- 文件大小
+- 上传/更新时间
+- 外部公开地址
 
-## 六、验证
+点击公开地址即可读取文件内容。普通访问者不会看到上传、删除和 BAT 按钮。
 
-```powershell
-# 列出文件（管理）
-curl.exe "https://<你的域名>/api/files" -H "x-token: <WRITE_TOKEN>"
+### 管理文件
 
-# 上传/覆盖
-curl.exe -X PUT "https://<你的域名>/subs/cloudflare-ips.txt" -H "x-token: <WRITE_TOKEN>" --data-binary "@sub.txt"
+1. 点击右上角 **管理**。
+2. 输入 EdgeOne 环境变量中的 `WRITE_TOKEN`。
+3. Token 验证通过后才会显示管理区域和文件操作按钮。
+4. 选择本地文件，填写云端文件名，点击 **上传 / 更新**。
+5. 如果云端文件名已经存在，上传会覆盖旧文件，并更新上传时间。
+6. 文件列表中的：
+   - **更新**：选择新文件覆盖当前文件
+   - **BAT**：下载当前文件专用的一键更新脚本
+   - **删除**：删除文件和它的公开地址
 
-# 公开读取（不带 token）
-curl.exe "https://<你的域名>/subs/cloudflare-ips.txt"
+Token 只保存在当前浏览器标签页的 `sessionStorage` 中，关闭标签页后需要重新输入。网页不会把 Token 写入 URL，也不会显示或返回 Token。
 
-# 删除
-curl.exe -X DELETE "https://<你的域名>/subs/cloudflare-ips.txt" -H "x-token: <WRITE_TOKEN>"
+## update.bat
+
+验证 Token 后，在对应文件的操作栏点击 **BAT**，会下载一个专用脚本。
+
+使用时可以：
+
+- 将新的文件直接拖到这个 BAT 文件上；或
+- 双击 BAT，再输入文件路径。
+
+脚本会自动把文件上传到对应的云端地址并覆盖更新。脚本中包含 Token，请不要发给别人。
+
+电脑上的 `curl.exe` 通常已经随 Windows 提供；如果提示找不到 curl，需要安装 curl 或改用网页上传。
+
+## 外部读取
+
+文件公开读取，不需要 Token：
+
+```text
+https://你的域名/文件名
 ```
 
-## 七、填入 iptest-web
+例如云端文件名为 `docs/example.txt`：
 
-| iptest-web 配置项 | 填什么 |
-|---|---|
-| 云端地址 / base_url | `https://<你的域名>`（默认 URL 或自定义域名） |
-| Token | `WRITE_TOKEN` |
-| 输出文件名 | 如 `subs/cloudflare-ips.txt` |
+```text
+https://你的域名/docs/example.txt
+```
 
-## 八、限制与说明
+网页文件列表中的公开地址可以直接复制给别人使用。
 
-- 单请求正文 ≤ **1MB**（Makers 平台限制），代码包 ≤ 5MB，CPU ≤ 200ms。超大文件需另用 Blob `createUploadUrl` 预签名直传（当前版本未内置）。
-- 读取默认弹**强一致**，上传后立即可读最新内容。
-- `PUBLIC_BASE_URL` 环境变量**可填可不填**：不填时返回的 `url` 用请求自身域名；要固定外链域名才填。
-- Blob 数据**持久化在云端对象存储**，免费额度 1GB。
+## 接口
+
+```text
+GET    /api/files       公开列出文件
+GET    /<key>           公开读取文件
+POST   /api/auth        验证管理 Token
+PUT    /<key>           上传或覆盖文件
+POST   /<key>           上传或覆盖文件
+DELETE /<key>           删除文件
+```
+
+上传和删除请求必须带以下任意一种请求头：
+
+```text
+x-token: WRITE_TOKEN
+```
+
+或：
+
+```text
+Authorization: Bearer WRITE_TOKEN
+```
+
+## 防护设计
+
+为了保持操作简单，采用单一管理员 Token：
+
+- 文件读取和文件列表公开，方便外部使用
+- 上传、更新、删除由后端强制验证 Token
+- 前端隐藏按钮只负责简化界面，不承担真正安全职责
+- Token 只存在 EdgeOne 环境变量和管理员当前会话中
+- Token 不放在 URL
+- `__meta/` 为系统元数据目录，不能作为普通文件写入
+- 禁止 `..`、反斜杠、控制字符和危险文件名
+- 上传内容统一按普通文本读取，并返回 `nosniff` 安全头
+- 单个请求最大 1MB，这是 Makers Edge Functions 的平台限制
+
+任何人即使自己构造 HTTP 请求，也无法在没有 `WRITE_TOKEN` 的情况下上传、覆盖或删除文件。
+
+## Blob 说明
+
+代码中使用的存储空间名称是 `edgeone-sync`，这是为了保留之前版本已经上传的文件。第一次调用 Blob 时会自动创建该命名空间，不需要手动绑定 KV 或 Blob。
+
+Blob 数据持久化在云端对象存储。EdgeOne Makers Blob 免费版存储额度以控制台当前显示为准。

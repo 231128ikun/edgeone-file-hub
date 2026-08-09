@@ -1,8 +1,8 @@
 {
-  "name": "edgeone-sync",
+  "name": "edgeone-files",
   "version": "1.0.0",
   "private": true,
-  "description": "EdgeOne Makers 云端同步服务：上传订阅/结果文件到 Blob，公开 URL 读取",
+  "description": "A simple EdgeOne Makers file upload, update and public read service",
   "scripts": {
     "build": "echo no-build-needed"
   },
