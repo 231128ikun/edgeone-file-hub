@@ -109,22 +109,24 @@ https://你的域名/docs/example.txt
 GET    /api/files       公开列出文件
 GET    /<key>           公开读取文件
 POST   /api/auth        验证管理 Token
-PUT    /<key>           上传或覆盖文件
-POST   /<key>           上传或覆盖文件
+POST   /<key>           上传或覆盖文件（网页和 update.bat 都使用 POST）
+PUT    /<key>           兼容旧客户端（新代码不再使用）
 DELETE /<key>           删除文件
 ```
 
 上传和删除请求必须带以下任意一种请求头：
 
 ```text
-x-token: WRITE_TOKEN
+Authorization: Bearer WRITE_TOKEN
 ```
 
 或：
 
 ```text
-Authorization: Bearer WRITE_TOKEN
+x-token: WRITE_TOKEN
 ```
+
+网页和 update.bat 使用第一种（标准 Authorization 请求头），它不会被 EdgeOne 的防护规则误拦截。
 
 ## 防护设计
 
@@ -147,3 +149,22 @@ Authorization: Bearer WRITE_TOKEN
 代码中使用的存储空间名称是 `edgeone-sync`，这是为了保留之前版本已经上传的文件。第一次调用 Blob 时会自动创建该命名空间，不需要手动绑定 KV 或 Blob。
 
 Blob 数据持久化在云端对象存储。EdgeOne Makers Blob 免费版存储额度以控制台当前显示为准。
+
+## 常见问题
+
+**网页上传失败，返回 HTTP 545？**
+
+这是 EdgeOne 的防护规则拦截了旧版本使用的 PUT 请求和自定义 x-token 请求头。本版本已改为：
+
+- 上传使用 POST
+- 鉴权使用标准 Authorization 请求头
+
+把更新后的代码推送并重新部署一次，即可正常上传。
+
+**上传后如何更新已有的文件？**
+
+直接再次上传同一个云端文件名即可覆盖旧文件，上传时间会自动更新。
+
+**超过 1MB 的文件传不上去？**
+
+这是 Makers Edge Functions 的请求体上限，属于平台限制，不是本项目的问题。
