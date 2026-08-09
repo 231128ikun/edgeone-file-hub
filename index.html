@@ -247,6 +247,7 @@ a{color:var(--accent);text-decoration:none}
 @keyframes popModal{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.note-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -320,12 +321,13 @@ a{color:var(--accent);text-decoration:none}
 </div>
 </section>
 </main>
-<footer class="footer">EdgeOne File Hub<span class="dot"></span>Blob 持久化 · 单文件 ≤ 1MB · URL 反代不落盘</footer>
+<footer class="footer">EdgeOne File Hub<span class="dot"></span>Blob 持久化 · 单文件 ≤ 1MB</footer>
 <button id="fabBtn" class="fab" type="button" title="上传文件" hidden></button>
 <div id="toasts" class="toast-wrap"></div>
 <div id="uploadModal" class="modal-bg" hidden>
 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
 <div class="modal-head"><h3 id="uploadTitle">上传文件</h3><button class="modal-x" type="button" data-close="uploadModal" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+<div class="field"><label for="pathInput">云端路径</label><input id="pathInput" class="input" type="text" placeholder="docs/example.txt（留空时本地上传取文件名）" autocomplete="off" spellcheck="false"></div>
 <div class="tabs" id="sourceTabs">
 <button class="tab on" type="button" data-tab="local">本地上传</button>
 <button class="tab" type="button" data-tab="remote">URL 拉取</button>
@@ -335,23 +337,20 @@ a{color:var(--accent);text-decoration:none}
 <div id="dropZone" class="drop" tabindex="0" role="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10v-1a6 6 0 0 0-6-6 6 6 0 0 0-6 6v1a4 4 0 0 0 0 8h12a4 4 0 0 0 0-8z"/><path d="M12 6v6M9 9l3-3 3 3"/></svg><p><b>点击选择</b> 或拖拽文件到这里</p></div>
 <input id="fileInput" type="file" hidden>
 <div id="chosenFile" class="chosen" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span class="cn" id="chosenName"></span></div>
-<div class="field"><label for="pathInput">云端路径</label><input id="pathInput" class="input" type="text" placeholder="docs/example.txt" autocomplete="off" spellcheck="false"></div>
 <button id="uploadBtn" class="btn btn-primary block" type="button">上传</button>
 <div class="msg" id="uploadMessage"></div>
 </div>
 <div id="tabRemote" hidden>
 <div class="field"><label for="remoteInput">远程 URL</label><input id="remoteInput" class="input" type="url" placeholder="https://example.com/file.zip" autocomplete="off" spellcheck="false"></div>
-<div class="field"><label for="remoteKeyInput">保存为云端路径（可选）</label><input id="remoteKeyInput" class="input" type="text" placeholder="留空取远程文件名" autocomplete="off" spellcheck="false"></div>
 <button id="remoteBtn" class="btn btn-primary block" type="button">拉取并保存</button>
 <div class="msg" id="remoteMessage"></div>
 </div>
 <div id="tabManual" hidden>
 <div class="field"><label for="manualContent">内容</label><textarea id="manualContent" class="input" rows="6" placeholder="粘贴或输入内容，不超过 1MB" spellcheck="false"></textarea></div>
-<div class="field"><label for="manualName">文件名 / 云端路径</label><input id="manualName" class="input" type="text" placeholder="notes.txt" autocomplete="off" spellcheck="false"></div>
 <button id="manualSaveBtn" class="btn btn-primary block" type="button">保存文本</button>
 <div class="msg" id="manualMessage"></div>
 </div>
-<div class="modal-tip"><b>上传说明</b>：本地上传支持拖拽；URL 拉取由服务端抓取后落库；手动文本适合快速生成小文件。同路径上传会自动覆盖。</div>
+<div class="modal-tip"><b>上传说明</b>：云端路径为三种来源共用；URL 拉取时路径留空则取远程文件名；手动文本适合快速生成小文件。同路径上传会自动覆盖。</div>
 </div>
 </div>
 <div id="authModal" class="modal-bg" hidden>
@@ -370,6 +369,24 @@ a{color:var(--accent);text-decoration:none}
 <div class="confirm-actions"><button id="confirmCancelBtn" class="btn btn-ghost" type="button">取消</button><button id="confirmOkBtn" class="btn btn-danger" type="button">删除</button></div>
 </div>
 </div>
+<div id="moveModal" class="modal-bg" hidden>
+<div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="moveTitle">
+<div class="modal-head"><h3 id="moveTitle">移动文件</h3><button class="modal-x" type="button" data-close="moveModal" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+<div class="field"><label for="moveFrom">当前路径</label><input id="moveFrom" class="input" type="text" readonly></div>
+<div class="field"><label for="moveTo">新路径</label><input id="moveTo" class="input" type="text" placeholder="目标路径" autocomplete="off" spellcheck="false"></div>
+<button id="moveOkBtn" class="btn btn-primary block" type="button">移动</button>
+<div class="msg" id="moveMessage"></div>
+</div>
+</div>
+<div id="noteModal" class="modal-bg" hidden>
+<div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
+<div class="modal-head"><h3 id="noteTitle">备注</h3><button class="modal-x" type="button" data-close="noteModal" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+<div class="field"><label for="noteFileKey">文件</label><input id="noteFileKey" class="input" type="text" readonly></div>
+<div class="field"><label for="noteContent">备注内容</label><textarea id="noteContent" class="input" rows="4" placeholder="输入备注，保存在本浏览器" spellcheck="false"></textarea></div>
+<button id="noteSaveBtn" class="btn btn-primary block" type="button">保存备注</button>
+<div class="msg" id="noteMessage"></div>
+</div>
+</div>
 <script>
 (function(){
 "use strict";
@@ -384,6 +401,10 @@ var proxyUrl="";
 var sortKey=localStorage.getItem("cloudsync_sort")||"time";
 var viewMode=localStorage.getItem("cloudsync_view")||"list";
 var pendingDelete=null;
+var pendingMoveKey=null;
+var pendingNoteKey=null;
+var allNotes={};
+try{allNotes=JSON.parse(localStorage.getItem("cloudsync_notes")||"{}");}catch(e){allNotes={};}
 /* ===== icons ===== */
 var I={
 search:"<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M21 21l-4.35-4.35\"/>",
@@ -419,7 +440,9 @@ archive:"<path d=\"M21 8v13H3V8M1 3h22v5H1zM10 12h4\"/>",
 code:"<path d=\"M16 18l6-6-6-6M8 6l-6 6 6 6\"/>",
 sheet:"<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/>",
 text:"<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M8 13h8M8 17h6\"/>",
-file:"<path d=\"M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z\"/><path d=\"M13 2v7h7\"/>"
+file:"<path d=\"M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z\"/><path d=\"M13 2v7h7\"/>",
+move:"<path d=\"M5 12h14M12 5l7 7-7 7\"/>",
+note:"<path d=\"M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z\"/>"
 };
 function icon(name,cls){var s="<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"";if(cls)s+=" class=\""+cls+"\"";return s+">"+I[name]+"</svg>";}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -444,7 +467,7 @@ function baseName(key){var i=key.lastIndexOf("/");return i>=0?key.substring(i+1)
 function extName(key){var i=key.lastIndexOf(".");if(i<=0||key.lastIndexOf("/")>i)return "";return key.substring(i+1).toLowerCase();}
 function fileType(key){var e=extName(key);var map={img:"png jpg jpeg gif webp svg bmp ico avif",video:"mp4 webm mkv mov avi",audio:"mp3 wav flac ogg m4a aac",archive:"zip rar 7z tar gz bz2 xz",pdf:"pdf",doc:"doc docx ppt pptx odt rtf",sheet:"xls xlsx csv tsv",code:"js jsx ts tsx html css json xml yaml yml sh py sql",text:"txt md log ini conf cfg"};for(var t in map){if(map[t].indexOf(e)>=0)return t;}return "file";}
 function typeIcon(t){if(t==="img")return "img";if(t==="video")return "video";if(t==="audio")return "music";if(t==="archive")return "archive";if(t==="pdf"||t==="doc")return "doc";if(t==="sheet")return "sheet";if(t==="code")return "code";if(t==="text")return "text";return "file";}
-function badgeOf(f){if(!f||!f.sourceLabel)return "";var cls="badge-local";if(f.sourceLabel==="远程拉取")cls="badge-remote";else if(f.sourceLabel==="手动输入")cls="badge-manual";return "<span class=\"badge "+cls+"\">"+f.sourceLabel+"</span>";}
+function badgeOf(f){if(!f||!f.sourceLabel)return "";var cls="badge-local";if(f.sourceLabel==="远程拉取")cls="badge-remote";else if(f.sourceLabel==="手动输入")cls="badge-manual";var tip=f.source?" title=\"来源："+f.source.replace(/\"/g,"&quot;")+"\"":"";return "<span class=\"badge "+cls+"\""+tip+">"+f.sourceLabel+"</span>";}
 function findFile(key){for(var i=0;i<files.length;i++){if(files[i].key===key)return files[i];}return null;}
 function fileUrl(f){return (f&&f.url)||(base+"/"+encodeKey(f.key));}
 /* ===== proxy ===== */
@@ -458,8 +481,8 @@ function getDisplayData(){var q=getQuery();var prefix=currentDir?currentDir+"/":
 function sortFiles(arr){arr.sort(function(a,b){if(sortKey==="name")return String(a.key).toLowerCase()<String(b.key).toLowerCase()?-1:1;if(sortKey==="size")return (b.size||0)-(a.size||0);return String(b.updatedAt||"").localeCompare(String(a.updatedAt||""));});}
 function renderBreadcrumb(){var bc=$("breadcrumb");if(!currentDir){bc.hidden=true;bc.innerHTML="";return;}bc.hidden=false;var parts=currentDir.split("/");var html="<button class=\"bc-link\" data-dir=\"\">全部文件</button>";var acc="";for(var i=0;i<parts.length;i++){acc=acc?acc+"/"+parts[i]:parts[i];var last=(i===parts.length-1);html+="<span class=\"bc-sep\">›</span>";if(last){html+="<span class=\"bc-cur\">"+esc(parts[i])+"</span>";}else{html+="<button class=\"bc-link\" data-dir=\""+esc(acc)+"\">"+esc(parts[i])+"</button>";}}bc.innerHTML=html;var links=bc.querySelectorAll(".bc-link");for(var j=0;j<links.length;j++){links[j].onclick=function(){currentDir=this.getAttribute("data-dir")||"";$("searchInput").value="";render();};}}
 function renderFolders(folders,fcount){var g=$("folderGrid");if(!folders.length){g.hidden=true;g.innerHTML="";return;}g.hidden=false;var html="";folders.forEach(function(nm){var full=currentDir?(currentDir+"/"+nm):nm;html+="<div class=\"folder-card\" data-full=\""+esc(full)+"\"><span class=\"fc-ic\">"+icon("folder")+"</span><span class=\"fc-body\"><span class=\"fc-name\">"+esc(nm)+"</span><span class=\"fc-count\">"+(fcount[nm]||0)+" 个文件</span></span><span class=\"fc-arrow\">"+icon("chev")+"</span></div>";});g.innerHTML=html;var cards=g.querySelectorAll(".folder-card");for(var i=0;i<cards.length;i++){cards[i].onclick=function(){currentDir=this.getAttribute("data-full");render();};}}
-function rowHtml(f){var t=fileType(f.key);var h="<div class=\"frow\" data-key=\""+esc(f.key)+"\"><div class=\"fname-cell\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+"</div><span class=\"fsize\">"+formatSize(f.size)+"</span><span class=\"ftime\">"+relTime(f.updatedAt)+"</span><div class=\"row-actions\">";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"edit\" type=\"button\" title=\"覆盖更新\">"+icon("up")+"</button>";}h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button><button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制链接\">"+icon("copy")+"</button>";if(isAdmin){h+="<button class=\"act-btn danger\" data-act=\"del\" type=\"button\" title=\"删除\">"+icon("trash")+"</button>";}return h+"</div></div>";}
-function gridHtml(f){var t=fileType(f.key);var h="<div class=\"fcard\" data-key=\""+esc(f.key)+"\"><div class=\"fcactions\">";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"edit\" type=\"button\" title=\"覆盖更新\">"+icon("up")+"</button>";}h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button><button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制链接\">"+icon("copy")+"</button>";if(isAdmin){h+="<button class=\"act-btn danger\" data-act=\"del\" type=\"button\" title=\"删除\">"+icon("trash")+"</button>";}h+="</div><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+"<div class=\"fmeta\">"+formatSize(f.size)+" · "+relTime(f.updatedAt)+"</div></div>";return h;}
+function rowHtml(f){var t=fileType(f.key);var h="<div class=\"frow\" data-key=\""+esc(f.key)+"\"><div class=\"fname-cell\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+(getNote(f.key)?"<span class=\"note-dot\" title=\"有备注\"></span>":"")+"</div><span class=\"fsize\">"+formatSize(f.size)+"</span><span class=\"ftime\">"+relTime(f.updatedAt)+"</span><div class=\"row-actions\">";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"edit\" type=\"button\" title=\"覆盖更新\">"+icon("up")+"</button>";}if(isAdmin&&f.source){h+="<button class=\"act-btn\" data-act=\"refresh\" type=\"button\" title=\"从来源更新\">"+icon("refresh")+"</button>";}h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button><button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制链接\">"+icon("copy")+"</button><button class=\"act-btn\" data-act=\"note\" type=\"button\" title=\"备注\""+(getNote(f.key)?" style=\"color:var(--accent)\"":"")+">"+icon("note")+"</button>";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"move\" type=\"button\" title=\"移动\">"+icon("move")+"</button><button class=\"act-btn danger\" data-act=\"del\" type=\"button\" title=\"删除\">"+icon("trash")+"</button>";}return h+"</div></div>";}
+function gridHtml(f){var t=fileType(f.key);var h="<div class=\"fcard\" data-key=\""+esc(f.key)+"\"><div class=\"fcactions\">";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"edit\" type=\"button\" title=\"覆盖更新\">"+icon("up")+"</button>";}if(isAdmin&&f.source){h+="<button class=\"act-btn\" data-act=\"refresh\" type=\"button\" title=\"从来源更新\">"+icon("refresh")+"</button>";}h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button><button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制链接\">"+icon("copy")+"</button><button class=\"act-btn\" data-act=\"note\" type=\"button\" title=\"备注\""+(getNote(f.key)?" style=\"color:var(--accent)\"":"")+">"+icon("note")+"</button>";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"move\" type=\"button\" title=\"移动\">"+icon("move")+"</button><button class=\"act-btn danger\" data-act=\"del\" type=\"button\" title=\"删除\">"+icon("trash")+"</button>";}h+="</div><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+(getNote(f.key)?"<span class=\"note-dot\" title=\"有备注\"></span>":"")+"<div class=\"fmeta\">"+formatSize(f.size)+" · "+relTime(f.updatedAt)+"</div></div>";return h;}
 function renderList(arr){var list=$("fileList");list.classList.remove("fgrid");list.innerHTML=arr.map(function(f){return rowHtml(f);}).join("");}
 function renderGrid(arr){var list=$("fileList");list.classList.add("fgrid");list.innerHTML=arr.map(function(f){return gridHtml(f);}).join("");}
 function render(){renderBreadcrumb();var data=getDisplayData();var arr=data.files.slice();sortFiles(arr);var q=getQuery();$("listStatus").textContent=files.length+" 个文件"+(currentDir?" · "+currentDir:"")+(q?" · 筛选:"+q:"");renderFolders(data.folders,data.fcount);var list=$("fileList");if(arr.length){list.hidden=false;if(viewMode==="grid"){renderGrid(arr);}else{renderList(arr);}}else{list.hidden=true;list.innerHTML="";}var showEmpty=(!data.folders.length&&!arr.length);$("empty").hidden=!showEmpty;if(showEmpty){if(q){$("emptyDesc").textContent="没有找到与 「"+q+"」 匹配的文件。";$("emptyUploadBtn").hidden=true;$("emptyAuthBtn").hidden=true;}else{$("emptyDesc").textContent=isAdmin?"这里还没有任何文件，点击上方按钮上传第一个文件。":"文件库为空，登录管理后即可上传文件。";$("emptyUploadBtn").hidden=!isAdmin;$("emptyAuthBtn").hidden=isAdmin;}}renderAdmin();}
@@ -467,12 +490,21 @@ function setLoading(on){$("skeleton").hidden=!on;if(on){$("fileList").hidden=tru
 async function loadFiles(){setLoading(true);try{var r=await fetch(base+"/api/files",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);var d=await r.json();files=d.files||[];}catch(e){files=[];try{toast("文件列表加载失败，请刷新重试","err");}catch(e2){}}setLoading(false);render();}
 /* ===== upload modal ===== */
 function switchTab(name){var panes={local:$("tabLocal"),remote:$("tabRemote"),manual:$("tabManual")};for(var k in panes){if(panes[k])panes[k].hidden=(k!==name);}var btns=document.querySelectorAll("#sourceTabs .tab");for(var i=0;i<btns.length;i++){btns[i].classList.toggle("on",btns[i].getAttribute("data-tab")===name);}}
-function setPickedFile(f){pickedFile=f||null;var ch=$("chosenFile");if(pickedFile){ch.hidden=false;$("chosenName").textContent=pickedFile.name+" ("+formatSize(pickedFile.size)+")";$("pathInput").value=pickedFile.name;}else{ch.hidden=true;$("fileInput").value="";}}
-function openUpload(tab,prepath){if(!isAdmin)return;tab=tab||"local";$("uploadModal").hidden=false;$("pathInput").value=prepath||(currentDir?currentDir+"/":"");$("remoteInput").value="";$("remoteKeyInput").value=currentDir?currentDir+"/":"";$("manualName").value=currentDir?currentDir+"/":"";$("manualContent").value="";setMsg("uploadMessage","",0);setMsg("remoteMessage","",0);setMsg("manualMessage","",0);setPickedFile(null);switchTab(tab);setTimeout(function(){if(tab==="local"){$("dropZone").focus();}else if(tab==="remote"){$("remoteInput").focus();}else{$("manualContent").focus();}},60);}
+function setPickedFile(f){pickedFile=f||null;var ch=$("chosenFile");if(pickedFile){ch.hidden=false;$("chosenName").textContent=pickedFile.name+" ("+formatSize(pickedFile.size)+")";var curPath=$("pathInput").value.trim();var dirPrefix=(curPath&&curPath.indexOf("/")>=0)?curPath.substring(0,curPath.lastIndexOf("/")+1):"";$("pathInput").value=dirPrefix+pickedFile.name;}else{ch.hidden=true;$("fileInput").value="";}}
+function openUpload(tab,prepath){if(!isAdmin)return;tab=tab||"local";$("uploadModal").hidden=false;$("pathInput").value=prepath||(currentDir?currentDir+"/":"");$("remoteInput").value="";$("manualContent").value="";setMsg("uploadMessage","",0);setMsg("remoteMessage","",0);setMsg("manualMessage","",0);setPickedFile(null);switchTab(tab);setTimeout(function(){if(tab==="local"){$("dropZone").focus();}else if(tab==="remote"){$("remoteInput").focus();}else{$("manualContent").focus();}},60);}
 function closeUpload(){$("uploadModal").hidden=true;}
 async function upload(){var path=$("pathInput").value.trim();if(!path)return setMsg("uploadMessage","请填写云端路径","err");if(!pickedFile)return setMsg("uploadMessage","请先选择文件","err");if(!isValidPath(path))return setMsg("uploadMessage","路径不合法：不能包含 .. 、\\ 或尾随空格","err");if(pickedFile.size>1048576)return setMsg("uploadMessage","文件超过 1MB 限制","err");$("uploadBtn").disabled=true;setMsg("uploadMessage","上传中…","working");try{var h={};h["content-type"]="text/plain; charset=utf-8";if(token)h["Authorization"]="Bearer "+token;var r=await fetch(base+"/"+encodeKey(path),{method:"POST",headers:h,body:await pickedFile.arrayBuffer()});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("uploadMessage",explainError(d.error)+" (HTTP "+r.status+")","err");setMsg("uploadMessage","上传成功，已同步文件库","ok");toast("已上传 "+baseName(path),"ok");setPickedFile(null);$("pathInput").value=currentDir?currentDir+"/":"";await loadFiles();}catch(e){setMsg("uploadMessage","上传失败，请检查网络","err");}finally{$("uploadBtn").disabled=false;}}
-async function proxyPull(){var url=$("remoteInput").value.trim();var key=$("remoteKeyInput").value.trim();if(!/^https?:\/\//i.test(url))return setMsg("remoteMessage","请输入 http/https 地址","err");if(key&&!isValidPath(key))return setMsg("remoteMessage","路径不合法","err");$("remoteBtn").disabled=true;setMsg("remoteMessage","拉取中…","working");try{var r=await fetch(base+"/api/proxy",{method:"POST",headers:authHeaders(),body:JSON.stringify({url:url,key:key||undefined})});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("remoteMessage",explainError(d.error),"err");setMsg("remoteMessage","已保存到文件库","ok");toast("已保存远程文件","ok");await loadFiles();}catch(e){setMsg("remoteMessage","拉取失败，请检查网络","err");}finally{$("remoteBtn").disabled=false;}}
-async function manualSave(){var key=$("manualName").value.trim();var content=$("manualContent").value;if(!key)return setMsg("manualMessage","请填写文件名","err");if(!isValidPath(key))return setMsg("manualMessage","路径不合法","err");if(content.length>1048576)return setMsg("manualMessage","内容超过 1MB 限制","err");$("manualSaveBtn").disabled=true;setMsg("manualMessage","保存中…","working");try{var h={};h["content-type"]="text/plain; charset=utf-8";h["x-source"]="manual";if(token)h["Authorization"]="Bearer "+token;var r=await fetch(base+"/"+encodeKey(key),{method:"POST",headers:h,body:content});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("manualMessage",explainError(d.error),"err");setMsg("manualMessage","已保存","ok");toast("已保存 "+baseName(key),"ok");$("manualContent").value="";await loadFiles();}catch(e){setMsg("manualMessage","保存失败","err");}finally{$("manualSaveBtn").disabled=false;}}
+async function proxyPull(){var url=$("remoteInput").value.trim();var key=$("pathInput").value.trim();if(!/^https?:\/\//i.test(url))return setMsg("remoteMessage","请输入 http/https 地址","err");if(key&&!isValidPath(key))return setMsg("remoteMessage","路径不合法","err");$("remoteBtn").disabled=true;setMsg("remoteMessage","拉取中…","working");try{var r=await fetch(base+"/api/proxy",{method:"POST",headers:authHeaders(),body:JSON.stringify({url:url,key:key||undefined})});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("remoteMessage",explainError(d.error),"err");setMsg("remoteMessage","已保存到文件库","ok");toast("已保存远程文件","ok");await loadFiles();}catch(e){setMsg("remoteMessage","拉取失败，请检查网络","err");}finally{$("remoteBtn").disabled=false;}}
+async function manualSave(){var key=$("pathInput").value.trim();var content=$("manualContent").value;if(!key)return setMsg("manualMessage","请填写云端路径","err");if(!isValidPath(key))return setMsg("manualMessage","路径不合法","err");if(content.length>1048576)return setMsg("manualMessage","内容超过 1MB 限制","err");$("manualSaveBtn").disabled=true;setMsg("manualMessage","保存中…","working");try{var h={};h["content-type"]="text/plain; charset=utf-8";h["x-source"]="manual";if(token)h["Authorization"]="Bearer "+token;var r=await fetch(base+"/"+encodeKey(key),{method:"POST",headers:h,body:content});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("manualMessage",explainError(d.error),"err");setMsg("manualMessage","已保存","ok");toast("已保存 "+baseName(key),"ok");$("manualContent").value="";await loadFiles();}catch(e){setMsg("manualMessage","保存失败","err");}finally{$("manualSaveBtn").disabled=false;}}
+/* ===== move / refresh source / notes ===== */
+function getNote(key){return allNotes[key]||"";}
+function setNote(key,text){if(text&&text.trim()){allNotes[key]=text.trim();}else{delete allNotes[key];}try{localStorage.setItem("cloudsync_notes",JSON.stringify(allNotes));}catch(e){}}
+function openMove(key){pendingMoveKey=key;$("moveFrom").value=key;$("moveTo").value=key;setMsg("moveMessage","",0);$("moveModal").hidden=false;setTimeout(function(){$("moveTo").focus();$("moveTo").select();},60);}
+async function doMove(){var oldKey=pendingMoveKey;var newKey=$("moveTo").value.trim();if(!newKey)return setMsg("moveMessage","请填写新路径","err");if(newKey===oldKey)return setMsg("moveMessage","路径未变化","err");if(!isValidPath(newKey))return setMsg("moveMessage","路径不合法：不能包含 .. 、\\ 或尾随空格","err");$("moveOkBtn").disabled=true;setMsg("moveMessage","移动中…","working");try{var r1=await fetch(base+"/"+encodeKey(oldKey));if(!r1.ok)throw new Error("HTTP "+r1.status);var buf=await r1.arrayBuffer();var h={"content-type":"text/plain; charset=utf-8"};if(token)h["Authorization"]="Bearer "+token;var r2=await fetch(base+"/"+encodeKey(newKey),{method:"POST",headers:h,body:buf});var d=await r2.json().catch(function(){return{};});if(!r2.ok)return setMsg("moveMessage",explainError(d.error),"err");var r3=await fetch(base+"/"+encodeKey(oldKey),{method:"DELETE",headers:authHeaders()});if(!r3.ok){var d3=await r3.json().catch(function(){return{};});toast("新路径已写入，但删除原文件失败："+explainError(d3.error),"err");$("moveModal").hidden=true;await loadFiles();return;}if(getNote(oldKey)){setNote(newKey,getNote(oldKey));setNote(oldKey,"");}toast("已移动到 "+newKey,"ok");$("moveModal").hidden=true;await loadFiles();}catch(e){setMsg("moveMessage","移动失败，请检查网络","err");}finally{$("moveOkBtn").disabled=false;}}
+async function refreshSource(key){var f=findFile(key);if(!f||!f.source)return;toast("正在从来源更新…","info");try{var r=await fetch(base+"/api/proxy",{method:"POST",headers:authHeaders(),body:JSON.stringify({url:f.source,key:key})});var d=await r.json().catch(function(){return{};});if(!r.ok)return toast(explainError(d.error),"err");toast("已从来源更新 "+baseName(key),"ok");await loadFiles();}catch(e){toast("更新失败，请检查网络","err");}}
+function openNote(key){pendingNoteKey=key;$("noteFileKey").value=key;$("noteContent").value=getNote(key);setMsg("noteMessage","",0);$("noteModal").hidden=false;setTimeout(function(){$("noteContent").focus();},60);}
+function saveNote(){if(!pendingNoteKey)return;setNote(pendingNoteKey,$("noteContent").value);toast("备注已保存","ok");$("noteModal").hidden=true;render();}
+
 /* ===== delete / confirm ===== */
 function openConfirm(key){pendingDelete=key;$("confirmDesc").textContent=baseName(key);$("confirmModal").hidden=false;}
 function closeConfirm(){$("confirmModal").hidden=true;pendingDelete=null;}
@@ -543,7 +575,7 @@ var closes=document.querySelectorAll("[data-close]");
 for(var i=0;i<closes.length;i++){(function(btn){btn.onclick=function(){var m=$(btn.getAttribute("data-close"));if(m)m.hidden=true;};})(closes[i]);}
 $("uploadModal").onclick=function(e){if(e.target===this)this.hidden=true;};
 $("authModal").onclick=function(e){if(e.target===this)this.hidden=true;};
-$("confirmModal").onclick=function(e){if(e.target===this)closeConfirm();};
+$("confirmModal").onclick=function(e){if(e.target===this)closeConfirm();};$("moveModal").onclick=function(e){if(e.target===this)this.hidden=true;};$("noteModal").onclick=function(e){if(e.target===this)this.hidden=true;};
 var tabs=document.querySelectorAll("#sourceTabs .tab");
 for(var i=0;i<tabs.length;i++){tabs[i].onclick=function(){switchTab(this.getAttribute("data-tab"));};}
 var dz=$("dropZone");
@@ -554,7 +586,7 @@ dz.addEventListener("drop",function(e){e.preventDefault();dz.classList.remove("o
 $("fileInput").onchange=function(){if(this.files&&this.files.length)setPickedFile(this.files[0]);};
 $("uploadBtn").onclick=upload;
 $("remoteBtn").onclick=proxyPull;
-$("manualSaveBtn").onclick=manualSave;
+$("manualSaveBtn").onclick=manualSave;$("moveOkBtn").onclick=doMove;$("noteSaveBtn").onclick=saveNote;
 $("toolbarUploadBtn").onclick=function(){openUpload("local");};
 $("emptyUploadBtn").onclick=function(){openUpload("local");};
 $("emptyAuthBtn").onclick=function(){openAuth();};
@@ -566,8 +598,8 @@ $("pwToggle").onclick=function(){var inp=$("tokenInput");if(inp.type==="password
 $("confirmCancelBtn").onclick=closeConfirm;
 $("confirmOkBtn").onclick=doDelete;
 var flist=$("fileList");
-flist.addEventListener("click",function(e){var btn=e.target.closest?e.target.closest(".act-btn"):null;if(!btn)return;var row=btn.closest("[data-key]");if(!row)return;var key=row.getAttribute("data-key");var act=btn.getAttribute("data-act");if(act==="open"){window.open(fileUrl(findFile(key)),"_blank");}else if(act==="copy"){copyUrl(fileUrl(findFile(key)),btn);}else if(act==="edit"){openUpload("local",key);}else if(act==="del"){openConfirm(key);}});
-document.addEventListener("keydown",function(e){if(e.key==="/"){var tag=document.activeElement?document.activeElement.tagName:"";if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;e.preventDefault();$("searchInput").focus();}else if(e.key==="Escape"){if(!$("confirmModal").hidden)closeConfirm();else if(!$("authModal").hidden)closeAuth();else if(!$("uploadModal").hidden)closeUpload();else if(!$("adminMenu").hidden){$("adminMenu").hidden=true;$("manageBtn").setAttribute("aria-expanded","false");}else if(document.activeElement===$("searchInput")){$("searchInput").blur();}}});
+flist.addEventListener("click",function(e){var btn=e.target.closest?e.target.closest(".act-btn"):null;if(!btn)return;var row=btn.closest("[data-key]");if(!row)return;var key=row.getAttribute("data-key");var act=btn.getAttribute("data-act");if(act==="open"){window.open(fileUrl(findFile(key)),"_blank");}else if(act==="copy"){copyUrl(fileUrl(findFile(key)),btn);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="note"){openNote(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}});
+document.addEventListener("keydown",function(e){if(e.key==="/"){var tag=document.activeElement?document.activeElement.tagName:"";if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;e.preventDefault();$("searchInput").focus();}else if(e.key==="Escape"){if(!$("confirmModal").hidden)closeConfirm();else if(!$("authModal").hidden)closeAuth();else if(!$("uploadModal").hidden)closeUpload();else if(!$("moveModal").hidden)$("moveModal").hidden=true;else if(!$("noteModal").hidden)$("noteModal").hidden=true;else if(!$("adminMenu").hidden){$("adminMenu").hidden=true;$("manageBtn").setAttribute("aria-expanded","false");}else if(document.activeElement===$("searchInput")){$("searchInput").blur();}}});
 /* ===== init ===== */
 renderAdmin();
 loadFiles();
