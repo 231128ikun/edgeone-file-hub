@@ -1,3 +1,4 @@
+$("downloadBatBtn").onclick = downloadBat;
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -12,7 +13,7 @@
 <header><div class="wrap top"><div><div class="brand">云端文件</div><div class="sub">公开读取 · 管理员上传和更新</div></div><button class="manage-link" id="manageBtn">管理</button></div></header>
 <main>
 <section class="panel"><div class="panel-title"><h1>文件列表</h1><div class="actions"><span class="status" id="listStatus">正在加载…</span><button class="secondary" id="refreshBtn">刷新</button></div></div><div class="table-wrap"><table><thead><tr><th>文件</th><th>大小</th><th>上传时间</th><th>公开地址</th><th id="actionHead" class="hidden">操作</th></tr></thead><tbody id="fileRows"></tbody></table><div id="empty" class="empty hidden">暂时没有上传文件。</div></div></section>
-<section id="adminPanel" class="panel hidden"><div class="admin-head"><h2>管理文件</h2><button class="secondary" id="logoutBtn">退出管理</button></div><div class="admin-grid"><div class="field"><label for="pathInput">云端文件名</label><input id="pathInput" type="text" placeholder="例如：docs/example.txt"></div><div class="field"><label for="fileInput">选择本地文件</label><input id="fileInput" class="file-input" type="file"></div></div><div class="actions" style="margin-top:14px"><button id="uploadBtn">上传 / 更新</button><span class="status">单个文件最大 1MB</span></div><div id="uploadMessage"></div></section>
+<section id="adminPanel" class="panel hidden"><div class="admin-head"><h2>管理文件</h2><button class="secondary" id="downloadBatBtn">上传脚本</button><button class="secondary" id="logoutBtn">退出管理</button></div><div class="admin-grid"><div class="field"><label for="pathInput">云端文件名</label><input id="pathInput" type="text" placeholder="例如：docs/example.txt"></div><div class="field"><label for="fileInput">选择本地文件</label><input id="fileInput" class="file-input" type="file"></div></div><div class="actions" style="margin-top:14px"><button id="uploadBtn">上传 / 更新</button><span class="status">单个文件最大 1MB</span></div><div id="uploadMessage"></div></section>
 </main>
 <div id="modalBackdrop" class="modal-backdrop hidden"><div class="modal"><h2>进入管理</h2><p class="muted">请输入 EdgeOne 环境变量中的 WRITE_TOKEN。</p><input id="tokenInput" type="password" autocomplete="off" placeholder="WRITE_TOKEN"><div id="authMessage"></div><div class="modal-actions"><button class="secondary" id="cancelAuth">取消</button><button id="verifyBtn">验证</button></div></div></div>
 <script>const $ = (id) => document.getElementById(id);
@@ -120,17 +121,13 @@ function renderFiles() {
       updateButton.textContent = "更新";
       updateButton.onclick = () => chooseUpdate(file.key);
 
-      const batButton = document.createElement("button");
-      batButton.className = "secondary";
-      batButton.textContent = "BAT";
-      batButton.onclick = () => downloadBat(file.key);
-
+      
       const deleteButton = document.createElement("button");
       deleteButton.className = "danger";
       deleteButton.textContent = "删除";
       deleteButton.onclick = () => removeFile(file.key);
 
-      actionBox.append(updateButton, batButton, deleteButton);
+      actionBox.append(updateButton, deleteButton);
       actionCell.appendChild(actionBox);
       row.appendChild(actionCell);
     }
@@ -259,57 +256,56 @@ async function removeFile(key) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return alert(explainError(data.error));
-    await loadFiles();
+    
+$("fileInput").onchange = () => { var f = $("fileInput").files[0]; if (f) $("pathInput").value = f.name; };
+loadFiles();
   } catch {
     alert("删除失败，请检查网络");
   }
 }
 
-function downloadBat(key) {
-  const encodedKey = encodeKey(key);
-  const target = `${base}/${encodedKey}`;
-  const bat = `@echo off\r
-chcp 65001 >nul\r
-set "BASE_URL=${base}"\r
-set "KEY=${encodedKey}"\r
-set "TOKEN=${token}"\r
-if "%~1"=="" set /p "FILE=把文件拖到这里后按回车："\r
-if not "%~1"=="" set "FILE=%~1"\r
-if "%FILE%"=="" exit /b 1\r
-if not exist "%FILE%" (echo 文件不存在&pause&exit /b 1)\r
-echo 正在更新 ${target}\r
-timeout /t 1 >nul\r
-curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" -H "Content-Type: text/plain; charset=utf-8" --data-binary "@%FILE%"\r
-echo.\r
-pause\r
-`;
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob(["\ufeff" + bat], { type: "text/plain;charset=utf-8" }));
-  link.download = `update-${key.split("/").pop()}.bat`;
+function downloadBat() {
+  if (!token) { alert('请先验证 Token'); return; }
+  var batContent = '@echo off\r\n' +
+    'chcp 65001 >nul\r\n' +
+    'set "BASE_URL=' + base + '"\r\n' +
+    'set "TOKEN=' + token + '"\r\n' +
+    '\r\n' +
+    'echo ========================================\r\n' +
+    'echo   云端文件上传工具\r\n' +
+    'echo ========================================\r\n' +
+    'echo.\r\n' +
+    '\r\n' +
+    'if not "%~1"=="" (\r\n' +
+    '    set "FILE=%~1"\r\n' +
+    ') else (\r\n' +
+    '    set /p "FILE=将文件拖到此窗口后按回车："\r\n' +
+    ')\r\n' +
+    'if "%FILE%"=="" (echo 未指定文件 & pause & exit /b 1)\r\n' +
+    'if not exist "%FILE%" (echo 文件不存在 & pause & exit /b 1)\r\n' +
+    '\r\n' +
+    'for %%%%i in ("%FILE%") do set "DEFAULT_NAME=%%%%~nxi"\r\n' +
+    'set "KEY=%DEFAULT_NAME%"\r\n' +
+    'set /p "KEY=云端文件名（回车用 %DEFAULT_NAME%："\r\n' +
+    'if "%KEY%"=="" set "KEY=%DEFAULT_NAME%"\r\n' +
+    '\r\n' +
+    'echo 正在上传...\r\n' +
+    'curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" --data-binary "@%FILE%"\r\n' +
+    'echo.\r\n' +
+    'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败)\r\n' +
+    'echo.\r\n' +
+    'pause\r\n';
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([batContent], { type: 'text/plain;charset=utf-8' }));
+  link.download = 'upload.bat';
   link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
 }
 
-$("manageBtn").onclick = () => isAdmin ? (show("adminPanel"), window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })) : openAuth();
-$("cancelAuth").onclick = closeAuth;
-$("verifyBtn").onclick = verify;
-$("tokenInput").onkeydown = (event) => { if (event.key === "Enter") verify(); };
-$("refreshBtn").onclick = loadFiles;
-$("fileInput").onchange = () => {
-  const file = $("fileInput").files[0];
-  if (file && !$("pathInput").value.trim()) $("pathInput").value = file.name;
-};
-$("uploadBtn").onclick = upload;
-$("logoutBtn").onclick = () => {
-  token = "";
-  isAdmin = false;
-  sessionStorage.removeItem("cloudsync_token");
-  show("adminPanel", false);
-  renderFiles();
-};
-$("modalBackdrop").onclick = (event) => { if (event.target === $("modalBackdrop")) closeAuth(); };
 
+$("fileInput").onchange = () => { var f = $("fileInput").files[0]; if (f) $("pathInput").value = f.name; };
 loadFiles();
-validateStoredToken();</script>
+validateStoredToken();
+</script>
 </body>
 </html>
