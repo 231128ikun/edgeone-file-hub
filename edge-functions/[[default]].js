@@ -2,6 +2,7 @@ import { getStore } from "@edgeone/pages-blob";
 
 const STORE_NAME = "edgeone-sync";
 const META_PREFIX = "__meta/";
+const ID_PREFIX = "__id/";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_KEY_LENGTH = 512;
 const MAX_REDIRECTS = 5;
@@ -66,6 +67,9 @@ async function listFiles({ request, env }) {
   for (const blob of blobs) {
     const meta = await store.get(blob.key, { type: "json", consistency: "strong" });
     if (!meta || typeof meta.key !== "string") continue;
+    const prevCode = meta.code;
+    const code = await ensureFileCode(store, meta);
+    if (code !== prevCode) await store.setJSON(META_PREFIX + meta.key, meta);
     files.push({
       key: meta.key,
       size: Number(meta.size) || 0,
@@ -74,6 +78,8 @@ async function listFiles({ request, env }) {
       source: meta.source || null,
       sourceLabel: sourceLabelOf(meta),
       note: typeof meta.note === "string" ? meta.note : "",
+      code,
+      codeUrl: `${base}/${code}`,
       url: `${base}/${encodeKey(meta.key)}`,
     });
   }
@@ -89,10 +95,22 @@ function sourceLabelOf(meta) {
 }
 
 async function readFile({ request }) {
-  const key = getKey(request.url);
-  if (!key || key.startsWith(META_PREFIX)) return json({ error: "not_found" }, 404);
+  const rawKey = getKey(request.url);
+  if (!rawKey || rawKey.startsWith(META_PREFIX) || rawKey.startsWith(ID_PREFIX)) {
+    return json({ error: "not_found" }, 404);
+  }
 
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  let key = rawKey;
+  let viaCode = false;
+  if (isCodeFormat(rawKey)) {
+    const mapping = await store.get(ID_PREFIX + rawKey, { type: "json", consistency: "strong" });
+    if (mapping && typeof mapping.key === "string" && !mapping.key.startsWith(META_PREFIX) && !mapping.key.startsWith(ID_PREFIX)) {
+      key = mapping.key;
+      viaCode = true;
+    }
+  }
+
   const meta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
   const contentType = meta?.contentType || guessContentType(key) || "application/octet-stream";
 
@@ -102,7 +120,7 @@ async function readFile({ request }) {
   return new Response(content, {
     headers: {
       "content-type": contentType,
-      "content-disposition": "inline",
+      "content-disposition": viaCode ? `inline; filename="${rawKey}"` : "inline",
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
       ...corsHeaders(),
@@ -114,7 +132,7 @@ async function writeFile({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
   const key = getKey(request.url);
   if (!key) return json({ error: "invalid_key" }, 400);
-  if (key.startsWith(META_PREFIX)) return json({ error: "reserved_key" }, 400);
+  if (key.startsWith(META_PREFIX) || key.startsWith(ID_PREFIX)) return json({ error: "reserved_key" }, 400);
 
   const declaredLength = Number(request.headers.get("content-length") || 0);
   if (declaredLength > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
@@ -135,18 +153,25 @@ async function writeFile({ request, env }) {
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const oldMeta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
   preserveNote(oldMeta, metadata);
+  const code = await resolveCode(store, request, oldMeta, metadata);
+  await store.setJSON(ID_PREFIX + code, { key });
   await store.set(key, body);
   await store.setJSON(META_PREFIX + key, metadata);
 
-  return json({ ok: true, file: { ...metadata, url: `${base}/${encodeKey(key)}` } });
+  return json({ ok: true, file: { ...metadata, code, url: `${base}/${encodeKey(key)}`, codeUrl: `${base}/${code}` } });
 }
 
 async function deleteFile({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
   const key = getKey(request.url);
   if (!key) return json({ error: "invalid_key" }, 400);
-  if (key.startsWith(META_PREFIX)) return json({ error: "reserved_key" }, 400);
+  if (key.startsWith(META_PREFIX) || key.startsWith(ID_PREFIX)) return json({ error: "reserved_key" }, 400);
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const meta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
+  if (meta && typeof meta.code === "string") {
+    const mapping = await store.get(ID_PREFIX + meta.code, { type: "json", consistency: "strong" });
+    if (mapping && mapping.key === key) await store.delete(ID_PREFIX + meta.code);
+  }
   await store.delete(key);
   await store.delete(META_PREFIX + key);
   return json({ ok: true, key });
@@ -170,7 +195,7 @@ async function proxyPull({ request, env }) {
 
   key = key || remoteBaseName(target);
   const normalized = normalizeKey(key);
-  if (!normalized || normalized.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+  if (!normalized || normalized.startsWith(META_PREFIX) || normalized.startsWith(ID_PREFIX)) return json({ error: "invalid_key" }, 400);
 
   const remote = await fetchRemote(target);
   if (!remote.ok) {
@@ -187,10 +212,12 @@ async function proxyPull({ request, env }) {
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const oldMeta = await store.get(META_PREFIX + normalized, { type: "json", consistency: "strong" });
   preserveNote(oldMeta, metadata);
+  const code = await resolveCode(store, request, oldMeta, metadata);
+  await store.setJSON(ID_PREFIX + code, { key: normalized });
   await store.set(normalized, remote.buffer);
   await store.setJSON(META_PREFIX + normalized, metadata);
 
-  return json({ ok: true, file: { ...metadata, url: `${base}/${encodeKey(normalized)}` } });
+  return json({ ok: true, file: { ...metadata, code, url: `${base}/${encodeKey(normalized)}`, codeUrl: `${base}/${code}` } });
 }
 
 // GET /api/proxy?url=... —— 反代读取远程内容（不落盘）
@@ -224,7 +251,7 @@ async function proxyRead({ request, env }) {
 async function saveNote({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
   const key = normalizeKey(new URL(request.url).searchParams.get("key") || "");
-  if (!key || key.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+  if (!key || key.startsWith(META_PREFIX) || key.startsWith(ID_PREFIX)) return json({ error: "invalid_key" }, 400);
   let content = "";
   try {
     const body = await request.json();
@@ -253,7 +280,7 @@ async function saveNote({ request, env }) {
 async function deleteNote({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
   const key = normalizeKey(new URL(request.url).searchParams.get("key") || "");
-  if (!key || key.startsWith(META_PREFIX)) return json({ error: "invalid_key" }, 400);
+  if (!key || key.startsWith(META_PREFIX) || key.startsWith(ID_PREFIX)) return json({ error: "invalid_key" }, 400);
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const meta = await store.get(META_PREFIX + key, { type: "json", consistency: "strong" });
   if (meta && typeof meta.key === "string") {
@@ -269,6 +296,53 @@ function preserveNote(oldMeta, metadata) {
   if (!oldMeta) return;
   if (typeof oldMeta.note === "string") metadata.note = oldMeta.note;
   if (typeof oldMeta.noteUpdatedAt === "string") metadata.noteUpdatedAt = oldMeta.noteUpdatedAt;
+}
+
+// 固定编码：随机 10 位 base62，随文件元数据持久化；移动 / 覆盖 / 刷新都不会变
+function isCodeFormat(value) {
+  return typeof value === "string" && /^[A-Za-z0-9]{10}$/.test(value);
+}
+
+function generateCode() {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const bytes = new Uint8Array(10);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 10; i++) s += alphabet[bytes[i] % alphabet.length];
+  } else {
+    for (let i = 0; i < 10; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return s;
+}
+
+// 给元数据分配固定编码并写索引；已有编码直接复用（老文件首次列出时自动补齐）
+async function ensureFileCode(store, meta) {
+  if (typeof meta.code === "string" && isCodeFormat(meta.code)) return meta.code;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const code = generateCode();
+    const existing = await store.get(ID_PREFIX + code, { type: "json", consistency: "strong" });
+    if (!existing) {
+      meta.code = code;
+      await store.setJSON(ID_PREFIX + code, { key: meta.key });
+      return code;
+    }
+  }
+  throw new Error("code_generation_failed");
+}
+
+// 移动 / 覆盖 / 刷新时复用编码：x-code 头（管理员移动）> 旧元数据 > 新生成
+async function resolveCode(store, request, oldMeta, metadata) {
+  const header = (request.headers.get("x-code") || "").trim();
+  if (isCodeFormat(header)) {
+    metadata.code = header;
+    return header;
+  }
+  if (oldMeta && isCodeFormat(oldMeta.code)) {
+    metadata.code = oldMeta.code;
+    return oldMeta.code;
+  }
+  return ensureFileCode(store, metadata);
 }
 
 function proxyRequiresToken(env) {
@@ -458,6 +532,6 @@ function corsHeaders() {
   return {
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "access-control-allow-headers": "content-type, x-token, x-source, authorization",
+    "access-control-allow-headers": "content-type, x-token, x-source, x-code, authorization",
   };
 }
