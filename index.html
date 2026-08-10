@@ -96,6 +96,10 @@ a{color:var(--accent);text-decoration:none}
 .select{height:36px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font-size:12.5px;padding:0 30px 0 11px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22%3E%3Cpath d=%22M1 1l4 4 4-4%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22 stroke-linecap=%22round%22/%3E%3C/svg%3E);background-repeat:no-repeat;background-position:right 10px center;transition:border-color .15s}
 .select:hover{border-color:var(--border-2)}
 .select:focus{outline:none;border-color:var(--accent)}
+.sel-all{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-2);font-size:12.5px;font-weight:600;cursor:pointer;user-select:none;transition:all .15s}
+.sel-all:hover{border-color:var(--border-2);color:var(--text)}
+.sel-all input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.btn-sm{height:34px;padding:0 13px;font-size:12.5px;border-radius:9px}
 .view-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
 .view-toggle button{width:30px;height:30px;border:none;background:transparent;border-radius:8px;color:var(--text-3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
 .view-toggle button svg{width:15px;height:15px}
@@ -106,8 +110,8 @@ a{color:var(--accent);text-decoration:none}
 .bc-sep{color:var(--text-4);margin:0 1px;font-size:12px}
 .bc-cur{color:var(--text);font-weight:600;padding:4px 6px}
 .folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:18px}
-.folder-card{display:flex;align-items:center;gap:12px;padding:14px 15px;background:var(--surface);border:1px solid var(--border);border-radius:14px;cursor:pointer;transition:all .18s}
-.folder-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.folder-card{display:flex;align-items:center;gap:12px;padding:14px 15px;background:var(--surface);border:1px solid var(--border);border-radius:14px;cursor:pointer;transition:all .18s;position:relative}
+.folder-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--shadow-sm);z-index:2}
 .folder-card .fc-ic{width:38px;height:38px;border-radius:10px;background:rgba(99,102,241,.1);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .folder-card .fc-ic svg{width:19px;height:19px}
 .folder-card .fc-body{flex:1;min-width:0}
@@ -115,10 +119,14 @@ a{color:var(--accent);text-decoration:none}
 .folder-card .fc-count{font-size:11.5px;color:var(--text-3);margin-top:2px}
 .folder-card .fc-arrow{color:var(--text-4);flex-shrink:0}
 .folder-card .fc-arrow svg{width:14px;height:14px}
-.file-list{display:flex;flex-direction:column}
+.file-list{display:flex;flex-direction:column;gap:2px}
 #fileList.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:4px 0}
 .frow{display:grid;grid-template-columns:minmax(0,1fr) 96px 84px 116px;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;cursor:default;transition:background .12s,border-color .12s;border:1px solid transparent;position:relative}
-.frow:hover{background:var(--surface-2);border-color:var(--border)}
+.frow:hover{background:var(--surface-2);border-color:var(--border);z-index:2}
+.frow.selected{background:var(--surface-2);border-color:var(--accent)}
+.row-check{display:flex;align-items:center;justify-content:center;width:20px;height:20px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.row-check input,.card-check input{width:16px;height:16px;margin:0;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+body.is-admin .frow{grid-template-columns:26px minmax(0,1fr) 96px 84px 116px}
 .frow .fname-cell{display:flex;align-items:center;gap:11px;min-width:0}
 .fname-wrap{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .fname-wrap .fname{max-width:100%}
@@ -148,7 +156,11 @@ a{color:var(--accent);text-decoration:none}
 .badge-manual{color:#d97706;background:rgba(217,119,6,.1)}
 /* ===== Grid view ===== */
 .fcard{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px 14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;transition:all .18s;cursor:pointer;min-width:0}
-.fcard:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.fcard:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:var(--shadow-sm);z-index:2}
+.fcard.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card-check{position:absolute;top:13px;left:12px;display:none;align-items:center;justify-content:center;width:20px;height:20px;cursor:pointer;z-index:3}
+body.is-admin .card-check{display:flex}
+body.is-admin .fc-top{padding-left:28px}
 .fc-top{display:flex;align-items:flex-start;gap:10px;min-width:0}
 .fc-top .ficon{width:44px;height:44px;border-radius:12px;flex-shrink:0}
 .fc-top .ficon svg{width:22px;height:22px}
@@ -243,6 +255,7 @@ a{color:var(--accent);text-decoration:none}
 .brand-sub{display:none}
 .proxy-form{flex-direction:column}
 .frow{grid-template-columns:minmax(0,1fr) 84px auto}
+body.is-admin .frow{grid-template-columns:26px minmax(0,1fr) 84px auto}
 .frow .fsize{display:none}
 .row-actions{opacity:1;transform:none}
 .fcactions{opacity:1;transform:none}
@@ -250,6 +263,7 @@ a{color:var(--accent);text-decoration:none}
 }
 @media (max-width:640px){
 .frow{grid-template-columns:minmax(0,1fr) auto}
+body.is-admin .frow{grid-template-columns:26px minmax(0,1fr) auto}
 .frow .ftime{display:none}
 .modal{padding:20px 16px}
 .proxy-card,.files-card{padding:18px 16px}
@@ -315,6 +329,8 @@ a{color:var(--accent);text-decoration:none}
 <button id="viewListBtn" class="on" type="button" title="列表视图" aria-label="列表视图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
 <button id="viewGridBtn" type="button" title="网格视图" aria-label="网格视图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
 </div>
+<label id="selectAllWrap" class="sel-all" title="选择当前视图中的全部文件" hidden><input id="selectAll" type="checkbox">全选</label>
+<button id="batchDeleteBtn" class="btn btn-danger btn-sm" type="button" hidden></button>
 <button id="toolbarUploadBtn" class="btn btn-primary" type="button" hidden></button>
 </div>
 </div>
@@ -417,6 +433,8 @@ var proxyUrl="";
 var sortKey=localStorage.getItem("cloudsync_sort")||"time";
 var viewMode=localStorage.getItem("cloudsync_view")||"list";
 var pendingDelete=null;
+var pendingBatch=null;
+var selectedKeys=Object.create(null);
 var pendingMoveKey=null;
 var pendingNoteKey=null;
 var allNotes={};
@@ -504,13 +522,13 @@ function renderFolders(folders,fcount){var g=$("folderGrid");if(!folders.length)
 function noteLine(f){var n=getNote(f.key);if(!n)return "";return "<span class=\"fnote\" title=\""+esc(n)+"\">"+icon("note")+"<span>"+esc(n)+"</span></span>";}
 function actionsHtml(f){var h="";h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button>";h+="<button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制固定链接\">"+icon("copy")+"</button>";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"note\" type=\"button\" title=\"备注\""+(getNote(f.key)?" style=\"color:var(--accent)\"":"")+">"+icon("note")+"</button>";h+="<button class=\"act-btn\" data-act=\"menu\" type=\"button\" title=\"更多操作\">"+icon("more")+"</button>";}return h;}
 function rowMenuHtml(f){var h="<div class=\"row-menu\" hidden>";h+="<button class=\"menu-item\" data-menu-act=\"edit\" type=\"button\">"+icon("up")+"<span>覆盖更新</span></button>";if(f.source){h+="<button class=\"menu-item\" data-menu-act=\"refresh\" type=\"button\">"+icon("refresh")+"<span>从来源更新</span></button>";}h+="<button class=\"menu-item\" data-menu-act=\"move\" type=\"button\">"+icon("move")+"<span>移动</span></button>";h+="<button class=\"menu-item\" data-menu-act=\"copy-path\" type=\"button\">"+icon("link")+"<span>复制路径链接</span></button>";h+="<button class=\"menu-item danger\" data-menu-act=\"del\" type=\"button\">"+icon("trash")+"<span>删除</span></button>";h+="</div>";return h;}
-function rowHtml(f){var t=fileType(f.key);var h="<div class=\"frow\" data-key=\""+esc(f.key)+"\"><div class=\"fname-cell\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fname-wrap\"><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+noteLine(f)+"</div>"+badgeOf(f)+"</div><span class=\"fsize\">"+formatSize(f.size)+"</span><span class=\"ftime\">"+relTime(f.updatedAt)+"</span><div class=\"row-actions\">"+actionsHtml(f)+"</div>"+rowMenuHtml(f)+"</div>";return h;}
-function gridHtml(f){var t=fileType(f.key);var h="<div class=\"fcard\" data-key=\""+esc(f.key)+"\"><div class=\"fc-top\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fcactions\">"+actionsHtml(f)+"</div></div><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+"<div class=\"fmeta\">"+formatSize(f.size)+" · "+relTime(f.updatedAt)+"</div>"+noteLine(f)+rowMenuHtml(f)+"</div>";return h;}
+function rowHtml(f){var t=fileType(f.key);var sel=selectedKeys[f.key]?" selected":"";var h="<div class=\"frow"+sel+"\" data-key=\""+esc(f.key)+"\">";if(isAdmin){h+="<label class=\"row-check\" title=\"选择文件\"><input type=\"checkbox\" data-check"+(selectedKeys[f.key]?" checked":"")+"></label>";}h+="<div class=\"fname-cell\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fname-wrap\"><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+noteLine(f)+"</div>"+badgeOf(f)+"</div><span class=\"fsize\">"+formatSize(f.size)+"</span><span class=\"ftime\">"+relTime(f.updatedAt)+"</span><div class=\"row-actions\">"+actionsHtml(f)+"</div>"+rowMenuHtml(f)+"</div>";return h;}
+function gridHtml(f){var t=fileType(f.key);var sel=selectedKeys[f.key]?" selected":"";var h="<div class=\"fcard"+sel+"\" data-key=\""+esc(f.key)+"\">";if(isAdmin){h+="<label class=\"card-check\" title=\"选择文件\"><input type=\"checkbox\" data-check"+(selectedKeys[f.key]?" checked":"")+"></label>";}h+="<div class=\"fc-top\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fcactions\">"+actionsHtml(f)+"</div></div><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+"<div class=\"fmeta\">"+formatSize(f.size)+" · "+relTime(f.updatedAt)+"</div>"+noteLine(f)+rowMenuHtml(f)+"</div>";return h;}
 function renderList(arr){var list=$("fileList");list.classList.remove("fgrid");list.innerHTML=arr.map(function(f){return rowHtml(f);}).join("");}
 function renderGrid(arr){var list=$("fileList");list.classList.add("fgrid");list.innerHTML=arr.map(function(f){return gridHtml(f);}).join("");}
 function render(){renderBreadcrumb();var data=getDisplayData();var arr=data.files.slice();sortFiles(arr);var q=getQuery();$("listStatus").textContent=files.length+" 个文件"+(currentDir?" · "+currentDir:"")+(q?" · 筛选:"+q:"");renderFolders(data.folders,data.fcount);var list=$("fileList");if(arr.length){list.hidden=false;if(viewMode==="grid"){renderGrid(arr);}else{renderList(arr);}}else{list.hidden=true;list.innerHTML="";}var showEmpty=(!data.folders.length&&!arr.length);$("empty").hidden=!showEmpty;if(showEmpty){if(q){$("emptyDesc").textContent="没有找到与 「"+q+"」 匹配的文件。";$("emptyUploadBtn").hidden=true;$("emptyAuthBtn").hidden=true;}else{$("emptyDesc").textContent=isAdmin?"这里还没有任何文件，点击上方按钮上传第一个文件。":"文件库为空，登录管理后即可上传文件。";$("emptyUploadBtn").hidden=!isAdmin;$("emptyAuthBtn").hidden=isAdmin;}}renderAdmin();}
 function setLoading(on){$("skeleton").hidden=!on;if(on){$("fileList").hidden=true;$("folderGrid").hidden=true;$("breadcrumb").hidden=true;$("empty").hidden=true;}}
-async function loadFiles(){setLoading(true);try{var r=await fetch(base+"/api/files",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);var d=await r.json();files=d.files||[];allNotes={};(files||[]).forEach(function(f){if(f&&f.note)allNotes[f.key]=f.note;});}catch(e){files=[];allNotes={};try{toast("文件列表加载失败，请刷新重试","err");}catch(e2){}}setLoading(false);render();}
+async function loadFiles(){setLoading(true);try{var r=await fetch(base+"/api/files",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);var d=await r.json();files=d.files||[];allNotes={};(files||[]).forEach(function(f){if(f&&f.note)allNotes[f.key]=f.note;});for(var k in selectedKeys){if(!findFile(k))delete selectedKeys[k];}}catch(e){files=[];allNotes={};try{toast("文件列表加载失败，请刷新重试","err");}catch(e2){}}setLoading(false);render();}
 /* ===== upload modal ===== */
 function switchTab(name){var panes={local:$("tabLocal"),remote:$("tabRemote"),manual:$("tabManual")};for(var k in panes){if(panes[k])panes[k].hidden=(k!==name);}var btns=document.querySelectorAll("#sourceTabs .tab");for(var i=0;i<btns.length;i++){btns[i].classList.toggle("on",btns[i].getAttribute("data-tab")===name);}}
 function setPickedFile(f){pickedFile=f||null;var ch=$("chosenFile");if(pickedFile){ch.hidden=false;$("chosenName").textContent=pickedFile.name+" ("+formatSize(pickedFile.size)+")";var curPath=$("pathInput").value.trim();var dirPrefix=(curPath&&curPath.indexOf("/")>=0)?curPath.substring(0,curPath.lastIndexOf("/")+1):"";$("pathInput").value=dirPrefix+pickedFile.name;}else{ch.hidden=true;$("fileInput").value="";}}
@@ -532,10 +550,17 @@ function openNote(key){if(!isAdmin)return;pendingNoteKey=key;$("noteFileKey").va
 async function saveNote(){if(!pendingNoteKey||!isAdmin)return;var content=$("noteContent").value.trim();$("noteSaveBtn").disabled=true;setMsg("noteMessage","保存中…","working");try{var r=await fetch(base+"/api/notes?key="+encodeURIComponent(pendingNoteKey),{method:"PUT",headers:authHeaders(),body:JSON.stringify({content:content})});var d=await r.json().catch(function(){return{};});if(!r.ok)return setMsg("noteMessage",explainError(d.error),"err");$("noteModal").hidden=true;await loadFiles();toast(content?"备注已保存":"备注已清除","ok");}catch(e){setMsg("noteMessage","保存失败，请检查网络","err");}finally{$("noteSaveBtn").disabled=false;}}
 function clearNote(){if(!pendingNoteKey)return;$("noteContent").value="";saveNote();}
 
+/* ===== batch selection ===== */
+function visibleFileKeys(){return getDisplayData().files.map(function(f){return f.key;});}
+function selectionCount(){var n=0;for(var k in selectedKeys){if(selectedKeys[k])n++;}return n;}
+function selectedArray(){var a=[];for(var k in selectedKeys){if(selectedKeys[k])a.push(k);}return a;}
+function updateSelectionUI(){var n=selectionCount();var box=$("selectAll");var btn=$("batchDeleteBtn");if(btn){btn.hidden=!isAdmin||n===0;btn.innerHTML=icon("trash")+"<span>删除所选"+(n?"("+n+")":"")+"</span>";}if(box){var keys=visibleFileKeys();var on=0;for(var i=0;i<keys.length;i++){if(selectedKeys[keys[i]])on++;}box.checked=keys.length>0&&on===keys.length;box.indeterminate=on>0&&on<keys.length;}var st=$("listStatus");if(st){var q2=getQuery();st.textContent=files.length+" 个文件"+(currentDir?" · "+currentDir:"")+(q2?" · 筛选:"+q2:"")+(n?" · 已选 "+n+" 个":"");}}
+function toggleSelect(key,on){if(on){selectedKeys[key]=true;}else{delete selectedKeys[key];}var rows=document.querySelectorAll(".frow[data-key],.fcard[data-key]");for(var i=0;i<rows.length;i++){if(rows[i].getAttribute("data-key")===key){rows[i].classList.toggle("selected",on);var cb=rows[i].querySelector(".row-check input,.card-check input");if(cb)cb.checked=!!on;break;}}updateSelectionUI();}
 /* ===== delete / confirm ===== */
-function openConfirm(key){pendingDelete=key;$("confirmDesc").textContent=baseName(key);$("confirmModal").hidden=false;}
-function closeConfirm(){$("confirmModal").hidden=true;pendingDelete=null;}
-async function doDelete(){var key=pendingDelete;if(!key)return;closeConfirm();try{var r=await fetch(base+"/"+encodeKey(key),{method:"DELETE",headers:authHeaders()});var d=await r.json().catch(function(){return{};});if(!r.ok){toast(explainError(d.error),"err");return;}toast("已删除 "+baseName(key),"ok");await loadFiles();}catch(e){toast("删除失败，请检查网络","err");}}
+function openConfirm(key){pendingDelete=key;pendingBatch=null;$("confirmTitle").textContent="确认删除该文件？";$("confirmDesc").textContent=baseName(key);$("confirmModal").hidden=false;}
+function openBatchConfirm(){var keys=selectedArray();if(!keys.length)return;pendingDelete=null;pendingBatch=keys.slice();$("confirmTitle").textContent="确认删除选中的 "+keys.length+" 个文件？";var names=keys.slice(0,3).map(function(k){return baseName(k);}).join("、");$("confirmDesc").textContent=names+(keys.length>3?" 等 "+keys.length+" 个文件":"");$("confirmModal").hidden=false;}
+function closeConfirm(){$("confirmModal").hidden=true;pendingDelete=null;pendingBatch=null;}
+async function doDelete(){if(pendingBatch&&pendingBatch.length){var keys=pendingBatch.slice();closeConfirm();var ok=0;var fail=0;for(var i=0;i<keys.length;i++){try{var r=await fetch(base+"/"+encodeKey(keys[i]),{method:"DELETE",headers:authHeaders()});var d=await r.json().catch(function(){return{};});if(r.ok){ok++;delete selectedKeys[keys[i]];}else{fail++;}}catch(e){fail++;}}if(ok)toast("已删除 "+ok+" 个文件","ok");if(fail)toast(fail+" 个文件删除失败，请检查权限或网络","err");await loadFiles();return;}var key=pendingDelete;if(!key)return;closeConfirm();try{var r=await fetch(base+"/"+encodeKey(key),{method:"DELETE",headers:authHeaders()});var d=await r.json().catch(function(){return{};});if(!r.ok){toast(explainError(d.error),"err");return;}delete selectedKeys[key];toast("已删除 "+baseName(key),"ok");await loadFiles();}catch(e){toast("删除失败，请检查网络","err");}}
 function downloadBat(){
 var lines=[
 "@echo off & chcp 65001 >nul & setlocal",
@@ -566,7 +591,7 @@ async function checkToken(value){var r=await fetch(base+"/api/auth",{method:"POS
 async function verify(){var v=$("tokenInput").value.trim();if(!v)return setMsg("authMessage","请输入 Token","err");$("verifyBtn").disabled=true;setMsg("authMessage","验证中…","working");try{var res=await checkToken(v);if(!res.response.ok||!res.data.ok)return setMsg("authMessage",explainError(res.data.error),"err");token=v;isAdmin=true;sessionStorage.setItem("cloudsync_token",token);closeAuth();renderAdmin();render();toast("已解锁管理","ok");}catch(e){setMsg("authMessage","无法连接","err");}finally{$("verifyBtn").disabled=false;}}
 async function validateStoredToken(){if(!token)return;try{var res=await checkToken(token);if(res.response.ok&&res.data.ok){isAdmin=true;renderAdmin();render();}else{logout();}}catch(e){logout();}}
 /* ===== admin UI ===== */
-function renderAdmin(){$("toolbarUploadBtn").hidden=!isAdmin;$("emptyUploadBtn").hidden=!isAdmin;$("emptyAuthBtn").hidden=isAdmin;$("fabBtn").hidden=!isAdmin;$("menuSignOut").hidden=!isAdmin;$("adminLabel").textContent=isAdmin?"管理员":"管理";var av=$("adminAvatar");if(isAdmin){av.className="admin-avatar on";av.innerHTML="管";}else{av.className="admin-avatar off";av.innerHTML=icon("key");}$("menuLock").innerHTML=isAdmin?(icon("lock")+"<span>锁定面板</span>"):(icon("key")+"<span>登录管理</span>");}
+function renderAdmin(){document.body.classList.toggle("is-admin",isAdmin);if($("selectAllWrap"))$("selectAllWrap").hidden=!isAdmin;updateSelectionUI();$("toolbarUploadBtn").hidden=!isAdmin;$("emptyUploadBtn").hidden=!isAdmin;$("emptyAuthBtn").hidden=isAdmin;$("fabBtn").hidden=!isAdmin;$("menuSignOut").hidden=!isAdmin;$("adminLabel").textContent=isAdmin?"管理员":"管理";var av=$("adminAvatar");if(isAdmin){av.className="admin-avatar on";av.innerHTML="管";}else{av.className="admin-avatar off";av.innerHTML=icon("key");}$("menuLock").innerHTML=isAdmin?(icon("lock")+"<span>锁定面板</span>"):(icon("key")+"<span>登录管理</span>");}
 function setView(mode){viewMode=mode;localStorage.setItem("cloudsync_view",mode);$("viewListBtn").classList.toggle("on",mode==="list");$("viewGridBtn").classList.toggle("on",mode==="grid");render();}
 /* ===== static labels ===== */
 $("toolbarUploadBtn").innerHTML=icon("plus")+"<span>上传</span>";
@@ -624,8 +649,11 @@ $("tokenInput").addEventListener("keydown",function(e){if(e.key==="Enter")verify
 $("pwToggle").onclick=function(){var inp=$("tokenInput");if(inp.type==="password"){inp.type="text";this.innerHTML=icon("eyeoff");this.setAttribute("aria-label","隐藏密码");}else{inp.type="password";this.innerHTML=icon("eye");this.setAttribute("aria-label","显示密码");}};
 $("confirmCancelBtn").onclick=closeConfirm;
 $("confirmOkBtn").onclick=doDelete;
+$("batchDeleteBtn").onclick=function(){openBatchConfirm();};
+$("selectAll").addEventListener("change",function(){var keys=visibleFileKeys();for(var i=0;i<keys.length;i++){if(this.checked)selectedKeys[keys[i]]=true;else delete selectedKeys[keys[i]];}render();});
 var flist=$("fileList");
 function handleRowMenu(act,key){if(act==="copy-path"){var cf=findFile(key);if(cf)copyUrl(cf.url,null);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}}
+flist.addEventListener("change",function(e){var cb=e.target.closest?e.target.closest("input[data-check]"):null;if(!cb)return;var row=cb.closest("[data-key]");if(!row)return;toggleSelect(row.getAttribute("data-key"),cb.checked);});
 flist.addEventListener("click",function(e){var mi=e.target.closest?e.target.closest(".row-menu .menu-item"):null;if(mi){var mrow=mi.closest("[data-key]");if(!mrow)return;var mkey=mrow.getAttribute("data-key");closeRowMenu();handleRowMenu(mi.getAttribute("data-menu-act"),mkey);return;}var btn=e.target.closest?e.target.closest(".act-btn"):null;if(!btn)return;var row=btn.closest("[data-key]");if(!row)return;var key=row.getAttribute("data-key");var act=btn.getAttribute("data-act");if(act==="menu"){toggleRowMenu(row,key);}else if(act==="open"){window.open(fileUrl(findFile(key)),"_blank");}else if(act==="copy"){copyUrl(fileCodeUrl(findFile(key)),btn);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="note"){openNote(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}});
 document.addEventListener("keydown",function(e){if(e.key==="/"){var tag=document.activeElement?document.activeElement.tagName:"";if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;e.preventDefault();$("searchInput").focus();}else if(e.key==="Escape"){if(!$("confirmModal").hidden)closeConfirm();else if(!$("authModal").hidden)closeAuth();else if(!$("uploadModal").hidden)closeUpload();else if(!$("moveModal").hidden)$("moveModal").hidden=true;else if(!$("noteModal").hidden)$("noteModal").hidden=true;else if(openMenuRow){closeRowMenu();}else if(!$("adminMenu").hidden){$("adminMenu").hidden=true;$("manageBtn").setAttribute("aria-expanded","false");}else if(document.activeElement===$("searchInput")){$("searchInput").blur();}}});
 /* ===== init ===== */
