@@ -561,28 +561,81 @@ function openConfirm(key){pendingDelete=key;pendingBatch=null;$("confirmTitle").
 function openBatchConfirm(){var keys=selectedArray();if(!keys.length)return;pendingDelete=null;pendingBatch=keys.slice();$("confirmTitle").textContent="确认删除选中的 "+keys.length+" 个文件？";var names=keys.slice(0,3).map(function(k){return baseName(k);}).join("、");$("confirmDesc").textContent=names+(keys.length>3?" 等 "+keys.length+" 个文件":"");$("confirmModal").hidden=false;}
 function closeConfirm(){$("confirmModal").hidden=true;pendingDelete=null;pendingBatch=null;}
 async function doDelete(){if(pendingBatch&&pendingBatch.length){var keys=pendingBatch.slice();closeConfirm();var ok=0;var fail=0;for(var i=0;i<keys.length;i++){try{var r=await fetch(base+"/"+encodeKey(keys[i]),{method:"DELETE",headers:authHeaders()});var d=await r.json().catch(function(){return{};});if(r.ok){ok++;delete selectedKeys[keys[i]];}else{fail++;}}catch(e){fail++;}}if(ok)toast("已删除 "+ok+" 个文件","ok");if(fail)toast(fail+" 个文件删除失败，请检查权限或网络","err");await loadFiles();return;}var key=pendingDelete;if(!key)return;closeConfirm();try{var r=await fetch(base+"/"+encodeKey(key),{method:"DELETE",headers:authHeaders()});var d=await r.json().catch(function(){return{};});if(!r.ok){toast(explainError(d.error),"err");return;}delete selectedKeys[key];toast("已删除 "+baseName(key),"ok");await loadFiles();}catch(e){toast("删除失败，请检查网络","err");}}
+function encodePowerShell(script){
+var bytes=[];
+for(var i=0;i<script.length;i++){var code=script.charCodeAt(i);bytes.push(code&255,(code>>8)&255);}
+var binary="";
+for(var j=0;j<bytes.length;j+=8192)binary+=String.fromCharCode.apply(null,bytes.slice(j,j+8192));
+return btoa(binary);
+}
 function downloadBat(){
+if(!token){alert("请先验证 Token");return;}
+var psScript=[
+"$ErrorActionPreference='Stop'",
+"try {",
+"  $base=$env:EDGEONE_BASE.TrimEnd('/')",
+"  $token=$env:EDGEONE_TOKEN",
+"  $file=$env:EDGEONE_FILE",
+"  $key=$env:EDGEONE_KEY",
+"  if(-not(Test-Path -LiteralPath $file -PathType Leaf)){throw 'file_not_found'}",
+"  if([string]::IsNullOrWhiteSpace($key)){throw 'empty_key'}",
+"  $parts=@($key -split '/' | Where-Object { $_ -ne '' } | ForEach-Object { [Uri]::EscapeDataString($_) })",
+"  if($parts.Count -eq 0){throw 'invalid_key'}",
+"  $uri=$base+'/'+($parts -join '/')",
+"  $client=New-Object Net.WebClient",
+"  $client.Headers.Add('Authorization','Bearer '+$token)",
+"  $client.Headers['Content-Type']='application/octet-stream'",
+"  $respBytes=$client.UploadData($uri,'POST',[IO.File]::ReadAllBytes($file))",
+"  $data=([Text.Encoding]::UTF8.GetString($respBytes)) | ConvertFrom-Json",
+"  if(-not $data.ok -or -not $data.file){throw 'upload_rejected'}",
+"  Write-Output ''",
+"  Write-Output '上传成功！'",
+"  if($data.file.codeUrl){Write-Output ('固定链接（推荐）：'+$data.file.codeUrl)}",
+"  if($data.file.url){Write-Output ('路径链接：'+$data.file.url)}",
+"} catch {",
+"  Write-Output ''",
+"  Write-Output ('上传失败：'+$_.Exception.Message)",
+"  exit 1",
+"}"
+].join(String.fromCharCode(10));
+var psCommand=encodePowerShell(psScript);
 var lines=[
-"@echo off & chcp 65001 >nul & setlocal",
-'echo   云端文件通用上传脚本 (EdgeOne File Hub)',
+"@echo off",
+"chcp 65001 >nul",
+"setlocal EnableExtensions DisableDelayedExpansion",
+"title EdgeOne File Hub Upload",
+"echo ========================================",
+"echo   云端文件上传工具 (EdgeOne File Hub)",
+"echo ========================================",
+"echo.",
 'set "BASE_URL='+base+'"',
 'set "TOKEN='+token+'"',
-'if "%~1"=="" (set /p "FILE=把文件拖到这里，或输入路径：") else (set "FILE=%~1")',
-'if "%FILE%"=="" (echo 未指定文件 & pause & exit /b 1)',
-'if not exist "%FILE%" (echo 文件不存在 & pause & exit /b 1)',
-"",
-'for %%%%i in ("%FILE%") do set "DEFAULT_NAME=%%%%~nxi"',
-'set "KEY=%DEFAULT_NAME%"',
-'set /p "KEY=云端路径（回车默认 %DEFAULT_NAME%）："',
-'if "%KEY%"=="" set "KEY=%DEFAULT_NAME%"',
-"",
-"echo 正在上传...",
-'curl.exe -sS -X POST "%BASE_URL%/%KEY%" -H "Authorization: Bearer %TOKEN%" --data-binary "@%FILE%"',
+"set \"FILE=%~1\"",
+"if defined FILE goto file_ready",
+"set /p \"FILE=请把文件拖到此窗口后按回车，或输入文件路径：\"",
+":file_ready",
+"if not defined FILE (echo 未指定文件。&pause&exit /b 1)",
+"if not exist \"%FILE%\" (echo 文件不存在：%FILE%&pause&exit /b 1)",
+"for %%I in (\"%FILE%\") do set \"DEFAULT_NAME=%%~nxI\"",
+"set \"DEFAULT_KEY=auto/%DEFAULT_NAME%\"",
+"set \"KEY=%~2\"",
+"if defined KEY goto key_ready",
+"set /p \"KEY=云端路径（回车默认 auto/%DEFAULT_NAME%）：\"",
+"if not defined KEY set \"KEY=%DEFAULT_KEY%\"",
+":key_ready",
 "echo.",
-'if %errorlevel%==0 (echo 上传成功: %BASE_URL%/%KEY%) else (echo 上传失败)',
-"echo.","pause","endlocal"
+"echo 正在上传，请稍候...",
+'set "EDGEONE_BASE=%BASE_URL%"',
+'set "EDGEONE_TOKEN=%TOKEN%"',
+'set "EDGEONE_FILE=%FILE%"',
+'set "EDGEONE_KEY=%KEY%"',
+'powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand '+psCommand,
+"if errorlevel 1 (echo.&echo 请检查 Token、云端路径和网络。) else (echo.&echo 上传完成，建议使用上面返回的固定链接。)",
+"echo.",
+"pause",
+"endlocal"
 ].join("\r\n");
-var link=document.createElement("a");link.href=URL.createObjectURL(new Blob([lines],{type:"text/plain;charset=utf-8"}));link.download="upload.bat";link.click();setTimeout(function(){URL.revokeObjectURL(link.href)},1000);}
+var link=document.createElement("a");link.href=URL.createObjectURL(new Blob(["\uFEFF"+lines],{type:"application/octet-stream"}));link.download="upload.bat";link.click();setTimeout(function(){URL.revokeObjectURL(link.href)},1000);}
 /* ===== auth ===== */
 function openAuth(){$("tokenInput").value="";setMsg("authMessage","",0);$("authModal").hidden=false;setTimeout(function(){$("tokenInput").focus();},50);}
 function closeAuth(){$("authModal").hidden=true;}
