@@ -3,7 +3,9 @@ import { getStore } from "@edgeone/pages-blob";
 const STORE_NAME = "edgeone-sync";
 const META_PREFIX = "__meta/";
 const ID_PREFIX = "__id/";
-const MAX_BODY_BYTES = 1024 * 1024;
+// Edge Functions 的入站请求 body 由平台限制；项目只限制实际处理/存储的内容。
+const MAX_BLOB_VALUE_BYTES = 25 * 1024 * 1024;
+const MAX_REMOTE_FILE_BYTES = MAX_BLOB_VALUE_BYTES;
 const MAX_KEY_LENGTH = 512;
 const MAX_REDIRECTS = 5;
 const PROXY_TIMEOUT_MS = 15000;
@@ -22,6 +24,7 @@ export async function onRequestPost(context) {
     const pathname = new URL(context.request.url).pathname;
     if (pathname === "/api/auth") return verifyToken(context);
     if (pathname === "/api/proxy") return proxyPull(context);
+    if (pathname === "/api/move") return moveFile(context);
     return writeFile(context);
   });
 }
@@ -134,11 +137,12 @@ async function writeFile({ request, env }) {
   if (!key) return json({ error: "invalid_key" }, 400);
   if (key.startsWith(META_PREFIX) || key.startsWith(ID_PREFIX)) return json({ error: "reserved_key" }, 400);
 
-  const declaredLength = Number(request.headers.get("content-length") || 0);
-  if (declaredLength > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
-
+  // 不在应用层重复写死 Edge Functions 当前的请求 body 上限；超限请求由平台直接拒绝。
+  // 这里仅防止未来平台上限提高后写入超过 Blob 单值容量的内容。
   const body = await request.arrayBuffer();
-  if (body.byteLength > MAX_BODY_BYTES) return json({ error: "file_too_large" }, 413);
+  if (body.byteLength > MAX_BLOB_VALUE_BYTES) {
+    return json({ error: "file_too_large", maxBytes: MAX_BLOB_VALUE_BYTES }, 413);
+  }
 
   const sourceHeader = (request.headers.get("x-source") || "").trim();
   let source = null;
@@ -177,6 +181,58 @@ async function deleteFile({ request, env }) {
   return json({ ok: true, key });
 }
 
+// POST /api/move { oldKey, newKey } —— Blob 内部移动，避免大文件经浏览器重新上传
+async function moveFile({ request, env }) {
+  if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
+
+  let oldKey = "", newKey = "";
+  try {
+    const body = await request.json();
+    oldKey = normalizeKey(typeof body?.oldKey === "string" ? body.oldKey.trim() : "");
+    newKey = normalizeKey(typeof body?.newKey === "string" ? body.newKey.trim() : "");
+  } catch {
+    return json({ error: "invalid_request" }, 400);
+  }
+
+  if (!oldKey || !newKey) return json({ error: "invalid_key" }, 400);
+  if (oldKey.startsWith(META_PREFIX) || oldKey.startsWith(ID_PREFIX) || newKey.startsWith(META_PREFIX) || newKey.startsWith(ID_PREFIX)) {
+    return json({ error: "reserved_key" }, 400);
+  }
+  if (oldKey === newKey) return json({ error: "same_key" }, 400);
+
+  const store = getStore({ name: STORE_NAME, consistency: "strong" });
+  const [content, sourceMeta, destinationMeta] = await Promise.all([
+    store.get(oldKey, { type: "arrayBuffer", consistency: "strong" }),
+    store.get(META_PREFIX + oldKey, { type: "json", consistency: "strong" }),
+    store.get(META_PREFIX + newKey, { type: "json", consistency: "strong" }),
+  ]);
+  if (content === null) return json({ error: "file_not_found" }, 404);
+
+  const metadata = {
+    ...(sourceMeta && typeof sourceMeta === "object" ? sourceMeta : {}),
+    key: newKey,
+    size: content.byteLength,
+    contentType: sourceMeta?.contentType || guessContentType(newKey),
+    updatedAt: new Date().toISOString(),
+  };
+  const code = await ensureFileCode(store, metadata);
+
+  await store.set(newKey, content);
+  await store.setJSON(META_PREFIX + newKey, metadata);
+  await store.setJSON(ID_PREFIX + code, { key: newKey });
+
+  if (destinationMeta && destinationMeta.code && destinationMeta.code !== code) {
+    const oldDestinationMapping = await store.get(ID_PREFIX + destinationMeta.code, { type: "json", consistency: "strong" });
+    if (oldDestinationMapping && oldDestinationMapping.key === newKey) await store.delete(ID_PREFIX + destinationMeta.code);
+  }
+  await store.delete(oldKey);
+  await store.delete(META_PREFIX + oldKey);
+
+  const requestUrl = new URL(request.url);
+  const base = (env?.PUBLIC_BASE_URL || requestUrl.origin).replace(/\/+$/, "");
+  return json({ ok: true, file: { ...metadata, code, url: `${base}/${encodeKey(newKey)}`, codeUrl: `${base}/${code}` } });
+}
+
 // POST /api/proxy  { url, key? } —— 拉取远程地址并保存为云端文件（需 Token）
 async function proxyPull({ request, env }) {
   if (!authorized(request, env)) return json({ error: "invalid_token" }, 401);
@@ -199,7 +255,7 @@ async function proxyPull({ request, env }) {
 
   const remote = await fetchRemote(target);
   if (!remote.ok) {
-    if (remote.status === 413) return json({ error: "file_too_large" }, 413);
+    if (remote.status === 413) return json({ error: "file_too_large", maxBytes: MAX_REMOTE_FILE_BYTES }, 413);
     if (remote.status === 403) return json({ error: "blocked_url" }, 403);
     return json({ error: remote.error || "remote_fetch_failed", status: remote.status || 502 }, 502);
   }
@@ -231,7 +287,7 @@ async function proxyRead({ request, env }) {
 
   const remote = await fetchRemote(target);
   if (!remote.ok) {
-    if (remote.status === 413) return json({ error: "file_too_large" }, 413);
+    if (remote.status === 413) return json({ error: "file_too_large", maxBytes: MAX_REMOTE_FILE_BYTES }, 413);
     if (remote.status === 403) return json({ error: "blocked_url" }, 403);
     return json({ error: remote.error || "remote_fetch_failed", status: remote.status || 502 }, 502);
   }
@@ -351,7 +407,7 @@ function proxyRequiresToken(env) {
   return !(value === "on" || value === "true" || value === "1" || value === "yes" || value === "public");
 }
 
-// 抓取远端内容：跟随重定向（每跳都做安全检查），内容最大 1MB
+// 抓取远端内容：跟随重定向（每跳都做安全检查），上限与 Blob 单值容量一致
 async function fetchRemote(url) {
   let current = url;
   try {
@@ -368,15 +424,48 @@ async function fetchRemote(url) {
       }
       if (!res.ok) return { ok: false, status: res.status, error: "remote_fetch_failed" };
       const declared = Number(res.headers.get("content-length") || 0);
-      if (declared > MAX_BODY_BYTES) return { ok: false, status: 413, error: "file_too_large" };
-      const buffer = await res.arrayBuffer();
-      if (buffer.byteLength > MAX_BODY_BYTES) return { ok: false, status: 413, error: "file_too_large" };
+      if (declared > MAX_REMOTE_FILE_BYTES) return { ok: false, status: 413, error: "file_too_large" };
+      const buffer = await readResponseWithLimit(res, MAX_REMOTE_FILE_BYTES);
+      if (buffer === null) return { ok: false, status: 413, error: "file_too_large" };
       return { ok: true, buffer, size: buffer.byteLength, contentType: res.headers.get("content-type") || "" };
     }
     return { ok: false, status: 502, error: "too_many_redirects" };
   } catch {
     return { ok: false, status: 502, error: "remote_fetch_failed" };
   }
+}
+
+async function readResponseWithLimit(response, maxBytes) {
+  if (!response.body || typeof response.body.getReader !== "function") {
+    const buffer = await response.arrayBuffer();
+    return buffer.byteLength > maxBytes ? null : buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => {});
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    if (typeof reader.releaseLock === "function") reader.releaseLock();
+  }
+
+  const combined = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return combined.buffer;
 }
 
 async function fetchWithTimeout(url) {

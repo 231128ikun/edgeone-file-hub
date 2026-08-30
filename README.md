@@ -104,7 +104,7 @@ GET /api/proxy?url=https://example.com/url.txt
 
 - 默认**公开**、**不保存**，直接返回远端内容（支持文本 / 图片 / 二进制等）
 - 自动补协议：填 `example.com/url.txt` 也可以
-- 防护：拒绝 localhost、内网、云元数据等地址；最大 1MB；15 秒超时；最多跟随 5 次重定向（每跳重新检查目标是否安全）
+- 防护：拒绝 localhost、内网、云元数据等地址；最大 25MB；15 秒超时；最多跟随 5 次重定向（每跳重新检查目标是否安全）
 - 想完全关闭公开反代：环境变量 `PUBLIC_PROXY=off`（此后必须带 Token 才能用）
 
 ### 远程拉取并保存（需 Token）
@@ -133,8 +133,9 @@ Content-Type: application/json
 | GET | `/api/proxy?url=...` | URL 反代（不保存） | 默认公开；`PUBLIC_PROXY=off` 后需 Token |
 | POST | `/<key>` | 上传 / 覆盖文件 | `WRITE_TOKEN` |
 | PUT | `/<key>` | 兼容旧客户端 | `WRITE_TOKEN` |
+| POST | `/api/move` | 在 Blob 内移动文件（无需重新上传） | `WRITE_TOKEN` |
 | DELETE | `/<key>` | 删除文件 | `WRITE_TOKEN` |
-| POST | `/api/proxy` | 拉取远程 URL 并保存为云端文件 | `WRITE_TOKEN` |
+| POST | `/api/proxy` | 拉取远程 URL 并保存为云端文件（最大 25MB） | `WRITE_TOKEN` |
 | PUT | `/api/notes?key=...` | 保存 / 清除文件备注（body: `{ "content": "..." }`，空内容 = 清除） | `WRITE_TOKEN` |
 | DELETE | `/api/notes?key=...` | 清除文件备注 | `WRITE_TOKEN` |
 | POST | `/api/auth` | 验证 Token（前端登录用） | 公开 |
@@ -156,12 +157,12 @@ x-token: WRITE_TOKEN
 - 普通用户只能读文件和偶尔用 URL 反代；写入 / 删除 / 拉取保存 / 备注编辑全部由后端校验 Token 管住，前端隐藏按钮只是简化界面
 - 前端不把 Token 写进 URL，只存在当前标签页会话里
 - `__meta/`、`__id/` 为系统保留前缀，禁止写入；云端路径禁止 `..`、反斜杠和危险字符
-- 单请求最大 1MB（Makers Edge Functions 平台限制）
-- URL 反代带 SSRF 防护（内网 / 本机 / 元数据地址一律拒绝）+ 1MB + 超时 + 重定向防护；不想开就设 `PUBLIC_PROXY=off`
+- 本地上传和手动输入的请求 body 由 Makers Edge Functions 平台限制（当前 1MB），项目不再重复写死这一阈值
+- URL 反代带 SSRF 防护（内网 / 本机 / 元数据地址一律拒绝）+ 25MB + 超时 + 重定向防护；不想开就设 `PUBLIC_PROXY=off`
 
 ## Blob 说明
 
-代码使用存储空间 `edgeone-sync`（沿用旧命名，方便保留已上传文件）。第一次调用时 Makers 会自动创建 Blob，**不需要手动绑定 KV / Blob 空间**。容量以 EdgeOne Makers Blob 当前免费额度为准。
+代码使用存储空间 `edgeone-sync`（沿用旧命名，方便保留已上传文件）。第一次调用时 Makers 会自动创建 Blob，**不需要手动绑定 KV / Blob 空间**。容量以 EdgeOne Makers Blob 当前免费额度为准；当前单值上限为 25MB。
 
 ## 常见问题
 
@@ -169,7 +170,7 @@ x-token: WRITE_TOKEN
 老版本用 PUT / 自定义 `x-token` 被防火墙拦截的提示。本版已改 POST + 标准 `Authorization: Bearer`，推送到默认分支后 EdgeOne 会自动重新部署。
 
 **超过 1MB 传不上？**
-Makers Edge Functions 请求体上限 1MB，平台限制。
+本地上传和手动输入会经过 Edge Functions，请求 body 当前上限为 1MB，这是平台限制；项目本身不再额外设置 1MB。需要处理更大的文件时，可使用“远程 URL 拉取”，其上限按 Blob 单值容量设置为 25MB。
 
 **怎么更新已有文件？**
 再次上传相同云端路径即可覆盖；远程拉取 / 手动输入用同一个路径也会覆盖。

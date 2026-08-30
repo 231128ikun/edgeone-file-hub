@@ -16,7 +16,7 @@
 POST {BASE_URL}/{云端路径}
 Authorization: Bearer {WRITE_TOKEN}
 
-body = 文件原始字节（任意文本 / JSON / 二进制，≤ 1MB）
+body = 文件原始字节（任意文本 / JSON / 二进制；大小受 Edge Functions 请求 body 平台配额约束）
 ```
 
 - `{云端路径}` 支持文件夹：如 `iptest/2026-08-09.txt`
@@ -142,7 +142,8 @@ func Upload(ctx context.Context, base, token, key string, content []byte) (strin
 | `GET` | `/api/files` | 文件列表（公开），可用来确认上传是否成功 |
 | `GET` | `/{key}` | 公开读取文件内容 |
 | `POST` | `/api/auth` | 校验 Token（body: `{"token":"..."}`），无副作用 |
-| `POST` | `/api/proxy` | 拉取远程 URL 并保存为云端文件（body: `{"url":"...","key":"..."}`） |
+| `POST` | `/api/proxy` | 拉取远程 URL 并保存为云端文件，最大 25MB（body: `{"url":"...","key":"..."}`） |
+| `POST` | `/api/move` | 在 Blob 内移动文件（body: `{"oldKey":"...","newKey":"..."}`） |
 | `DELETE` | `/{key}` | 删除文件 |
 | `PUT` | `/api/notes?key=...` | 给文件加备注（body: `{"content":"..."}`） |
 
@@ -150,7 +151,8 @@ func Upload(ctx context.Context, base, token, key string, content []byte) (strin
 
 ## 注意
 
-- 单文件上限 **1 MB**（EdgeOne Makers 平台限制），超限返回 HTTP 413。
+- 直接上传经过 Edge Functions，请求 body 当前受平台 **1 MB** 配额约束；项目不再重复写死该阈值。
+- 远程 URL 拉取不把文件放进请求 body，项目按 Blob 单值容量限制为 **25 MB**；超限返回 HTTP 413。
 - 云端路径规则：不能含 `..`、`\`、控制字符；`__meta/` 为系统保留目录。
 - 上传成功即覆盖同名文件，首页/文件列表会自动同步显示。
 - 已接入参考实现：`iptest-web` 项目的 `internal/cloud/edgeone.go`
