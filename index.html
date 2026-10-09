@@ -197,6 +197,8 @@ body.is-admin .fc-top{padding-left:28px}
 /* ===== Modal ===== */
 .modal-bg{position:fixed;inset:0;z-index:80;background:rgba(10,12,20,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
 .modal{width:100%;max-width:470px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;animation:popModal .22s cubic-bezier(.16,1,.3,1);max-height:calc(100vh - 40px);overflow:auto}
+#uploadModal .modal{max-width:min(96vw,1100px)}
+#manualContent{height:auto;min-height:52vh;resize:vertical;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
 .modal-sm{max-width:400px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .modal-head h3{font-size:16px;font-weight:700;margin:0;letter-spacing:-.01em}
@@ -378,11 +380,11 @@ body.is-admin .frow{grid-template-columns:26px minmax(0,1fr) auto}
 <div class="msg" id="remoteMessage"></div>
 </div>
 <div id="tabManual" hidden>
-<div class="field"><label for="manualContent">内容</label><textarea id="manualContent" class="input" rows="6" placeholder="粘贴或输入内容（直接写入受 Edge Functions 请求体限制）" spellcheck="false"></textarea></div>
+<div class="field"><label for="manualContent">内容</label><textarea id="manualContent" class="input" rows="16" placeholder="粘贴或输入内容（直接写入受 Edge Functions 请求体限制）" spellcheck="false"></textarea></div>
 <button id="manualSaveBtn" class="btn btn-primary block" type="button">保存文本</button>
 <div class="msg" id="manualMessage"></div>
 </div>
-<div class="modal-tip"><b>上传说明</b>：云端路径为三种来源共用；URL 拉取时路径留空则取远程文件名；手动文本适合快速生成小文件。同路径上传会自动覆盖。</div>
+<div class="modal-tip"><b>上传说明</b>：云端路径为三种来源共用；URL 拉取时路径留空则取远程文件名；手动文本适合快速生成小文件。同路径上传会自动覆盖。<br>想改动已有文件？在列表点「下载」保存到本地编辑，保持文件名不变，再用「覆盖更新」上传即可。</div>
 </div>
 </div>
 <div id="authModal" class="modal-bg" hidden>
@@ -521,8 +523,8 @@ function sortFiles(arr){arr.sort(function(a,b){if(sortKey==="name")return String
 function renderBreadcrumb(){var bc=$("breadcrumb");if(!currentDir){bc.hidden=true;bc.innerHTML="";return;}bc.hidden=false;var parts=currentDir.split("/");var html="<button class=\"bc-link\" data-dir=\"\">全部文件</button>";var acc="";for(var i=0;i<parts.length;i++){acc=acc?acc+"/"+parts[i]:parts[i];var last=(i===parts.length-1);html+="<span class=\"bc-sep\">›</span>";if(last){html+="<span class=\"bc-cur\">"+esc(parts[i])+"</span>";}else{html+="<button class=\"bc-link\" data-dir=\""+esc(acc)+"\">"+esc(parts[i])+"</button>";}}bc.innerHTML=html;var links=bc.querySelectorAll(".bc-link");for(var j=0;j<links.length;j++){links[j].onclick=function(){currentDir=this.getAttribute("data-dir")||"";$("searchInput").value="";render();};}}
 function renderFolders(folders,fcount){var g=$("folderGrid");if(!folders.length){g.hidden=true;g.innerHTML="";return;}g.hidden=false;var html="";folders.forEach(function(nm){var full=currentDir?(currentDir+"/"+nm):nm;html+="<div class=\"folder-card\" data-full=\""+esc(full)+"\"><span class=\"fc-ic\">"+icon("folder")+"</span><span class=\"fc-body\"><span class=\"fc-name\">"+esc(nm)+"</span><span class=\"fc-count\">"+(fcount[nm]||0)+" 个文件</span></span><span class=\"fc-arrow\">"+icon("chev")+"</span></div>";});g.innerHTML=html;var cards=g.querySelectorAll(".folder-card");for(var i=0;i<cards.length;i++){cards[i].onclick=function(){currentDir=this.getAttribute("data-full");render();};}}
 function noteLine(f){var n=getNote(f.key);if(!n)return "";return "<span class=\"fnote\" title=\""+esc(n)+"\">"+icon("note")+"<span>"+esc(n)+"</span></span>";}
-function actionsHtml(f){var h="";h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button>";h+="<button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制固定链接\">"+icon("copy")+"</button>";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"note\" type=\"button\" title=\"备注\""+(getNote(f.key)?" style=\"color:var(--accent)\"":"")+">"+icon("note")+"</button>";h+="<button class=\"act-btn\" data-act=\"menu\" type=\"button\" title=\"更多操作\">"+icon("more")+"</button>";}return h;}
-function rowMenuHtml(f){var h="<div class=\"row-menu\" hidden>";h+="<button class=\"menu-item\" data-menu-act=\"edit\" type=\"button\">"+icon("up")+"<span>覆盖更新</span></button>";if(f.source){h+="<button class=\"menu-item\" data-menu-act=\"refresh\" type=\"button\">"+icon("refresh")+"<span>从来源更新</span></button>";}h+="<button class=\"menu-item\" data-menu-act=\"move\" type=\"button\">"+icon("move")+"<span>移动</span></button>";h+="<button class=\"menu-item\" data-menu-act=\"copy-path\" type=\"button\">"+icon("link")+"<span>复制路径链接</span></button>";h+="<button class=\"menu-item danger\" data-menu-act=\"del\" type=\"button\">"+icon("trash")+"<span>删除</span></button>";h+="</div>";return h;}
+function actionsHtml(f){var h="";h+="<button class=\"act-btn\" data-act=\"open\" type=\"button\" title=\"打开\">"+icon("ext")+"</button>";h+="<button class=\"act-btn\" data-act=\"copy\" type=\"button\" title=\"复制固定链接\">"+icon("copy")+"</button>";h+="<button class=\"act-btn\" data-act=\"download\" type=\"button\" title=\"下载到本地\">"+icon("dl")+"</button>";if(isAdmin){h+="<button class=\"act-btn\" data-act=\"note\" type=\"button\" title=\"备注\""+(getNote(f.key)?" style=\"color:var(--accent)\"":"")+">"+icon("note")+"</button>";h+="<button class=\"act-btn\" data-act=\"menu\" type=\"button\" title=\"更多操作\">"+icon("more")+"</button>";}return h;}
+function rowMenuHtml(f){var h="<div class=\"row-menu\" hidden>";h+="<button class=\"menu-item\" data-menu-act=\"download\" type=\"button\">"+icon("dl")+"<span>下载到本地</span></button>";h+="<button class=\"menu-item\" data-menu-act=\"edit\" type=\"button\">"+icon("up")+"<span>覆盖更新</span></button>";if(f.source){h+="<button class=\"menu-item\" data-menu-act=\"refresh\" type=\"button\">"+icon("refresh")+"<span>从来源更新</span></button>";}h+="<button class=\"menu-item\" data-menu-act=\"move\" type=\"button\">"+icon("move")+"<span>移动</span></button>";h+="<button class=\"menu-item\" data-menu-act=\"copy-path\" type=\"button\">"+icon("link")+"<span>复制路径链接</span></button>";h+="<button class=\"menu-item danger\" data-menu-act=\"del\" type=\"button\">"+icon("trash")+"<span>删除</span></button>";h+="</div>";return h;}
 function rowHtml(f){var t=fileType(f.key);var sel=selectedKeys[f.key]?" selected":"";var h="<div class=\"frow"+sel+"\" data-key=\""+esc(f.key)+"\">";if(isAdmin){h+="<label class=\"row-check\" title=\"选择文件\"><input type=\"checkbox\" data-check"+(selectedKeys[f.key]?" checked":"")+"></label>";}h+="<div class=\"fname-cell\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fname-wrap\"><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+noteLine(f)+"</div>"+badgeOf(f)+"</div><span class=\"fsize\">"+formatSize(f.size)+"</span><span class=\"ftime\">"+relTime(f.updatedAt)+"</span><div class=\"row-actions\">"+actionsHtml(f)+"</div>"+rowMenuHtml(f)+"</div>";return h;}
 function gridHtml(f){var t=fileType(f.key);var sel=selectedKeys[f.key]?" selected":"";var h="<div class=\"fcard"+sel+"\" data-key=\""+esc(f.key)+"\">";if(isAdmin){h+="<label class=\"card-check\" title=\"选择文件\"><input type=\"checkbox\" data-check"+(selectedKeys[f.key]?" checked":"")+"></label>";}h+="<div class=\"fc-top\"><span class=\"ficon ic-"+t+"\">"+icon(typeIcon(t))+"</span><div class=\"fcactions\">"+actionsHtml(f)+"</div></div><span class=\"fname\">"+esc(baseName(f.key))+"</span>"+badgeOf(f)+"<div class=\"fmeta\">"+formatSize(f.size)+" · "+relTime(f.updatedAt)+"</div>"+noteLine(f)+rowMenuHtml(f)+"</div>";return h;}
 function renderList(arr){var list=$("fileList");list.classList.remove("fgrid");list.innerHTML=arr.map(function(f){return rowHtml(f);}).join("");}
@@ -631,6 +633,25 @@ var lines=[
 "endlocal"
 ].join("\r\n");
 var link=document.createElement("a");link.href=URL.createObjectURL(new Blob([lines],{type:"application/octet-stream"}));link.download="upload.bat";link.click();setTimeout(function(){URL.revokeObjectURL(link.href)},1000);}
+async function downloadFile(f){
+if(!f)return;
+toast("正在准备下载…","info");
+try{
+var r=await fetch(fileUrl(f));
+if(!r.ok)throw new Error();
+var blob=await r.blob();
+var url=URL.createObjectURL(blob);
+var a=document.createElement("a");
+a.href=url;
+a.download=baseName(f.key);
+document.body.appendChild(a);
+a.click();
+a.remove();
+setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}catch(e){
+toast("下载失败，请检查网络","err");
+}
+}
 /* ===== auth ===== */
 function openAuth(){$("tokenInput").value="";setMsg("authMessage","",0);$("authModal").hidden=false;setTimeout(function(){$("tokenInput").focus();},50);}
 function closeAuth(){$("authModal").hidden=true;}
@@ -700,9 +721,9 @@ $("confirmOkBtn").onclick=doDelete;
 $("batchDeleteBtn").onclick=function(){openBatchConfirm();};
 $("selectAll").addEventListener("change",function(){var keys=visibleFileKeys();for(var i=0;i<keys.length;i++){if(this.checked)selectedKeys[keys[i]]=true;else delete selectedKeys[keys[i]];}render();});
 var flist=$("fileList");
-function handleRowMenu(act,key){if(act==="copy-path"){var cf=findFile(key);if(cf)copyUrl(cf.url,null);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}}
+function handleRowMenu(act,key){if(act==="download"){downloadFile(findFile(key));}else if(act==="copy-path"){var cf=findFile(key);if(cf)copyUrl(cf.url,null);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}}
 flist.addEventListener("change",function(e){var cb=e.target.closest?e.target.closest("input[data-check]"):null;if(!cb)return;var row=cb.closest("[data-key]");if(!row)return;toggleSelect(row.getAttribute("data-key"),cb.checked);});
-flist.addEventListener("click",function(e){var mi=e.target.closest?e.target.closest(".row-menu .menu-item"):null;if(mi){var mrow=mi.closest("[data-key]");if(!mrow)return;var mkey=mrow.getAttribute("data-key");closeRowMenu();handleRowMenu(mi.getAttribute("data-menu-act"),mkey);return;}var btn=e.target.closest?e.target.closest(".act-btn"):null;if(!btn)return;var row=btn.closest("[data-key]");if(!row)return;var key=row.getAttribute("data-key");var act=btn.getAttribute("data-act");if(act==="menu"){toggleRowMenu(row,key);}else if(act==="open"){window.open(fileUrl(findFile(key)),"_blank");}else if(act==="copy"){copyUrl(fileCodeUrl(findFile(key)),btn);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="note"){openNote(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}});
+flist.addEventListener("click",function(e){var mi=e.target.closest?e.target.closest(".row-menu .menu-item"):null;if(mi){var mrow=mi.closest("[data-key]");if(!mrow)return;var mkey=mrow.getAttribute("data-key");closeRowMenu();handleRowMenu(mi.getAttribute("data-menu-act"),mkey);return;}var btn=e.target.closest?e.target.closest(".act-btn"):null;if(!btn)return;var row=btn.closest("[data-key]");if(!row)return;var key=row.getAttribute("data-key");var act=btn.getAttribute("data-act");if(act==="menu"){toggleRowMenu(row,key);}else if(act==="open"){window.open(fileUrl(findFile(key)),"_blank");}else if(act==="download"){downloadFile(findFile(key));}else if(act==="copy"){copyUrl(fileCodeUrl(findFile(key)),btn);}else if(act==="edit"){openUpload("local",key);}else if(act==="refresh"){refreshSource(key);}else if(act==="note"){openNote(key);}else if(act==="move"){openMove(key);}else if(act==="del"){openConfirm(key);}});
 document.addEventListener("keydown",function(e){if(e.key==="/"){var tag=document.activeElement?document.activeElement.tagName:"";if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;e.preventDefault();$("searchInput").focus();}else if(e.key==="Escape"){if(!$("confirmModal").hidden)closeConfirm();else if(!$("authModal").hidden)closeAuth();else if(!$("uploadModal").hidden)closeUpload();else if(!$("moveModal").hidden)$("moveModal").hidden=true;else if(!$("noteModal").hidden)$("noteModal").hidden=true;else if(openMenuRow){closeRowMenu();}else if(!$("adminMenu").hidden){$("adminMenu").hidden=true;$("manageBtn").setAttribute("aria-expanded","false");}else if(document.activeElement===$("searchInput")){$("searchInput").blur();}}});
 /* ===== init ===== */
 renderAdmin();
